@@ -3,25 +3,38 @@
 
 #include "util.h"
 #include "file.h"
+#include "obj.h"
+
+void usage()
+{
+    INFO("usage:...\n");
+}
 
 int main(int argc, char **argv)
 {
 	int fp;
     char *filename = argv[1];
-	//struct obj_file *f;
+	struct obj_file *f;
+
+    if ( argc < 2 )
+    {
+        ERROR("argument err!\n");
+        usage();
+        return 1;
+    }
 
 	fp = file_open(filename, O_RDONLY);
 	if (fp == -1)
 	{
-		error("%s open fail!\n", filename);
+		ERROR("%s open fail!\n", filename);
 		return 1;
 	}
-    debug("%s %m open ok!\n", filename);
+    DEBUG("%s open ok!\n", filename);
 
-	//if ((f = obj_load(fp, ET_REL, filename)) == NULL)
-	//	goto out;
+	if ((f = obj_load(fp, ET_REL, filename)) == NULL)
+		goto out;
 
-//out:
+out:
     file_close(fp);
 	return 1;
 

@@ -9,11 +9,13 @@ PROGS = $(TOP)/bin/linker
 
 ################DIRS###################
 LINKER_DIRS = $(TOP)/src/linker
+OBJ_DIRS = $(TOP)/src/obj
+UTIL_DIRS = $(TOP)/src/util
 
-SRC_DIRS = $(LINKER_DIRS)
+SRC_DIRS = $(LINKER_DIRS) $(OBJ_DIRS) $(UTIL_DIRS)
 
 ############PROGS USE LOCAL LIBS##########
-PROG_LINKER_LDFLAGS = $(TOP)/lib/liblinker.a
+PROG_LINKER_LDFLAGS = $(TOP)/lib/liblinker.a  $(TOP)/lib/libobj.a $(TOP)/lib/libutil.a
 
 #################VERSION DIR#####################
 

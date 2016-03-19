@@ -14,3 +14,14 @@ void file_close(int fd)
 {
     close(fd);
 }
+
+off_t file_lseek(int fd, off_t offset, int whence)
+{
+    return lseek(fd, offset, whence);
+}
+
+int file_read(int fd, void *buf, size_t count)
+{
+    return read(fd, buf, count);
+}
+
