@@ -3,6 +3,10 @@
 #include "file.h"
 
 
+char *sym_binding[] = {"Local", "Global", "Weak"};
+char *sym_type[] = {"NONE", "OBJECT", "FUNC", "SECTION", "FILE"};
+
+
 
 struct obj_file *
 obj_load (int fp, Elf32_Half e_type, const char *filename)
@@ -192,7 +196,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     {
         struct obj_section *sec = f->sections[i];
         sec->name = shstrtab + sec->header.sh_name;
-        DEBUG("name: %s\n", sec->name);
+        DEBUG("%d name: %s type: %d\n", i, sec->name, sec->header.sh_type);
     }
 
     for (i = 0; i < shnum; ++i)
@@ -203,7 +207,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         {
             sec->header.sh_flags &= ~SHF_ALLOC;
         }
-
+        //DEBUG("SHF_ALLOC :%d\n", sec->header.sh_flags & SHF_ALLOC);
         if (sec->header.sh_flags & SHF_ALLOC)
         {
             DEBUG("section flag: %d\n", (int)sec->header.sh_flags);
@@ -226,12 +230,14 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 		                (unsigned long)sizeof(ElfW(Sym)));
 		            return NULL;
 	            }
-
+                DEBUG("sh_link %d\n", sec->header.sh_link);
 	            nsym = sec->header.sh_size / sizeof(ElfW(Sym));
+                DEBUG("nsym: %ld\n", nsym);
 	            strtab = f->sections[sec->header.sh_link]->contents;
 	            sym = (ElfW(Sym) *) sec->contents;
 
 	            /* Allocate space for a table of local symbols.  */
+                DEBUG("sh_info %d\n", sec->header.sh_info);
 	            j = f->local_symtab_size = sec->header.sh_info;
                 DEBUG("f->local_symtab_size: %d\n", (int)f->local_symtab_size);
 	            f->local_symtab = xmalloc(j *= sizeof(struct obj_symbol *));
@@ -246,11 +252,18 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 		            else
 		                name = f->sections[sym->st_shndx]->name;
 
-                    DEBUG("sym name: %s\n", name);
+                    if( ELFW(ST_TYPE)(sym->st_info) <= 5 && ELFW(ST_BIND)(sym->st_info) <= 2)
+                    {
+                        DEBUG("sym name: %s,type: %s, binding: %s, st_shndx 0x%x\n", name, sym_type[ELFW(ST_TYPE)(sym->st_info)], sym_binding[ELFW(ST_BIND)(sym->st_info)], sym->st_shndx);
+                    }
+                    else
+                    {
+                        DEBUG("sym name: %s,type: %d , binding: %d, st_shndx: 0x%x\n", name, sym->st_info&0xf, sym->st_info>>4, sym->st_shndx);
+                    }
+
 
                     {
                     #ifdef ARCH_sh64
-
                      /*
             		                * For sh64 it is possible that the target of a branch requires a
             		                * mode switch---32 to 16 and back again---and this is implied by
@@ -284,6 +297,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	    {
 	        case SHT_RELM:
 	        {
+                DEBUG("SHT_RELM:----------------------\n");
 	            unsigned long nrel, j, nsyms;
 	            ElfW(RelM) *rel;
 	            struct obj_section *symtab;
@@ -298,7 +312,9 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	            }
 
 	            nrel = sec->header.sh_size / sizeof(ElfW(RelM));
+                DEBUG("nrel: %d\n", nrel);
 	            rel = (ElfW(RelM) *) sec->contents;
+                DEBUG("sh_link: %d\n", sec->header.sh_link);
 	            symtab = f->sections[sec->header.sh_link];
 	            nsyms = symtab->header.sh_size / symtab->header.sh_entsize;
 	            strtab = f->sections[symtab->header.sh_link]->contents;
@@ -309,6 +325,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 		            struct obj_symbol *intsym;
 		            unsigned long symndx;
 		            symndx = ELFW(R_SYM)(rel->r_info);
+                    DEBUG("symndx %d\n", symndx);
 		            if (symndx)
 		            {
 		                if (symndx >= nsyms)

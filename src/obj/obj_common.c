@@ -169,12 +169,14 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
     f->symtab[hash] = sym;
     sym->ksymidx = -1;
 
-    if (ELFW(ST_BIND)(info) == STB_LOCAL && symidx != -1) {
+    if (ELFW(ST_BIND)(info) == STB_LOCAL && symidx != -1)
+    {
         if (symidx >= f->local_symtab_size)
             ERROR("local symbol %s with index %ld exceeds local_symtab_size %ld\n", name, (long) symidx, (long) f->local_symtab_size);
-    else
-        f->local_symtab[symidx] = sym;
-  }
+        else
+            DEBUG("symidx: %d\n", symidx);
+            f->local_symtab[symidx] = sym;
+    }
 
 found:
   sym->name = name;
@@ -200,4 +202,21 @@ obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
   *p = sec;
 }
 
+
+
+ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
+{
+    if (sym)
+    {
+        if (sym->secidx >= SHN_LORESERVE)
+	        return sym->value;
+
+        return sym->value + f->sections[sym->secidx]->header.sh_addr;
+    }
+    else
+    {
+        /* As a special case, a NULL sym has value zero.  */
+        return 0;
+    }
+}
 
