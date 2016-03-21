@@ -221,3 +221,19 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
     }
 }
 #endif
+
+
+
+
+struct obj_section *
+obj_find_section (struct obj_file *f, const char *name)
+{
+  int i, n = f->header.e_shnum;
+
+  for (i = 0; i < n; ++i)
+    if (strcmp(f->sections[i]->name, name) == 0)
+      return f->sections[i];
+
+  return NULL;
+}
+

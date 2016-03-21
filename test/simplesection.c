@@ -8,7 +8,7 @@ int global_uninit_var;
 
 void func1(int i)
 {
-    printf("%d\n", i);
+    printf("%d.............\n", i);
 }
 
 int main(void)

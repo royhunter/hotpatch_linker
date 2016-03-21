@@ -28,7 +28,7 @@ struct obj_symbol_patch_struct;
 struct obj_section
 {
   ElfW(Shdr) header;
-  const char *name;
+  char *name;
   char *contents;
   struct obj_section *load_next;
   int idx;
@@ -144,6 +144,8 @@ Elf64_Addr
 obj_symbol_final_value (struct obj_symbol *sym);
 
 int obj_relocate (struct obj_file *f, ElfW(Addr) base);
+struct obj_section *
+obj_find_section (struct obj_file *f, const char *name);
 
 
 #endif

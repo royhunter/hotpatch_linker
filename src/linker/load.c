@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     int ret;
 	int elf_fd;
     int obj_fd;
-    struct obj_file *elf_f;
+    struct obj_file *obj_f;
 
     if ( argc < 3 )
     {
@@ -47,10 +47,12 @@ int main(int argc, char **argv)
 	}
     DEBUG("%s open ok!\n", obj_filename);
 
-	if ((elf_f = obj_load(obj_fd, ET_REL, obj_filename)) == NULL)
+	if ((obj_f = obj_load(obj_fd, ET_REL, obj_filename)) == NULL)
 		goto out;
 
     INFO("obj_load ok!\n");
+
+    //format_patch_layout(obj_f);
 
     INFO("load_elf_symbol....!\n");
     ret = load_elf_symbol(elf_fd);
@@ -60,9 +62,9 @@ int main(int argc, char **argv)
     INFO("load_elf_symbol ok!\n");
 
 
-    obj_relocate(elf_f, 0);
+    obj_relocate(obj_f, 0);
 
-    sleep(10000);
+    //sleep(10000);
 
 out:
     file_close(elf_fd);
