@@ -26,3 +26,11 @@ echo "readelf -r test"
 readelf -r test
 echo "readelf -r b.o"
 readelf -r b.o
+
+
+gcc -c simplesection.c
+
+objdump -h simplesection.o
+objdump -x simplesection.o
+
+objdump -s -d simplesection.o

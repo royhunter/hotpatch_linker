@@ -31,7 +31,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 	        continue;
         DEBUG("RELSEC sh_info %d\n", (int)relsec->header.sh_info);
         symsec = f->sections[relsec->header.sh_link];
-        targsec = f->sections[relsec->header.sh_info];
+        targsec = f->sections[relsec->header.sh_info];// target for section of this rel section
         strsec = f->sections[symsec->header.sh_link];
 
         if (!(targsec->header.sh_flags & SHF_ALLOC))
