@@ -8,14 +8,12 @@
 
 
 
-int
-obj_relocate (struct obj_file *f, ElfW(Addr) base)
+int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 {
     int i, n = f->header.e_shnum;
     int ret = 1;
 
     /* Finalize the addresses of the sections.  */
-
     arch_finalize_section_address(f, base);
 
 
@@ -31,7 +29,7 @@ obj_relocate (struct obj_file *f, ElfW(Addr) base)
         relsec = f->sections[i];
         if (relsec->header.sh_type != SHT_RELM)
 	        continue;
-
+        DEBUG("RELSEC sh_info %d\n", (int)relsec->header.sh_info);
         symsec = f->sections[relsec->header.sh_link];
         targsec = f->sections[relsec->header.sh_info];
         strsec = f->sections[symsec->header.sh_link];
@@ -64,12 +62,14 @@ obj_relocate (struct obj_file *f, ElfW(Addr) base)
 		            continue;
                 }
                 obj_find_relsym(intsym, f, f, rel, symtab, strtab);
-                value = obj_symbol_final_value(f, intsym);
+                DEBUG("WANT TO FIND SYM: %s\n", intsym->name);
+                value = obj_symbol_final_value(intsym);
+                DEBUG("SYM VALUE: 0x%x\n", (int)value);
             }
         #if SHT_RELM == SHT_RELA
             value += rel->r_addend;
         #endif
-
+#if 1
         /* Do it! */
             switch (arch_apply_relocation(f,targsec,symsec,intsym,rel,value))
     	    {
@@ -94,8 +94,10 @@ obj_relocate (struct obj_file *f, ElfW(Addr) base)
     	        ret = 0;
     	        break;
     	    }
+       #endif
         }
     }
+    return ret;
 }
 
 

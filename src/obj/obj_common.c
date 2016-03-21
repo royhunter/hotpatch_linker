@@ -174,7 +174,7 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
         if (symidx >= f->local_symtab_size)
             ERROR("local symbol %s with index %ld exceeds local_symtab_size %ld\n", name, (long) symidx, (long) f->local_symtab_size);
         else
-            DEBUG("symidx: %d\n", symidx);
+            DEBUG("symidx: %d\n", (int)symidx);
             f->local_symtab[symidx] = sym;
     }
 
@@ -203,14 +203,15 @@ obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
 }
 
 
-
+#if 0
 ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
 {
     if (sym)
     {
         if (sym->secidx >= SHN_LORESERVE)
 	        return sym->value;
-
+        DEBUG("sym->value: %d,  sym->secidx: %d, f->sections[sym->secidx]->header.sh_addr: %d\n",
+            sym->value, sym->secidx,  f->sections[sym->secidx]->header.sh_addr);
         return sym->value + f->sections[sym->secidx]->header.sh_addr;
     }
     else
@@ -219,4 +220,4 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
         return 0;
     }
 }
-
+#endif

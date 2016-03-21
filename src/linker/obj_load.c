@@ -312,7 +312,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	            }
 
 	            nrel = sec->header.sh_size / sizeof(ElfW(RelM));
-                DEBUG("nrel: %d\n", nrel);
+                DEBUG("nrel: %d\n", (int)nrel);
 	            rel = (ElfW(RelM) *) sec->contents;
                 DEBUG("sh_link: %d\n", sec->header.sh_link);
 	            symtab = f->sections[sec->header.sh_link];
@@ -325,7 +325,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 		            struct obj_symbol *intsym;
 		            unsigned long symndx;
 		            symndx = ELFW(R_SYM)(rel->r_info);
-                    DEBUG("symndx %d\n", symndx);
+                    DEBUG("symndx %d\n", (int)symndx);
 		            if (symndx)
 		            {
 		                if (symndx >= nsyms)
@@ -343,8 +343,177 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	    }
     }
 
-  f->filename = xstrdup(filename);
-  INFO("filename: %s\n", f->filename);
-  return f;
+    f->filename = xstrdup(filename);
+    INFO("filename: %s\n", f->filename);
+    return f;
 }
+
+
+
+
+
+//ElfW(Ehdr) Source_ELF_Header;
+Elf64_Ehdr Source_ELF_Header;
+Elf64_Ehdr *p_Source_ELF_Header = &Source_ELF_Header;
+Elf64_Shdr *p_Source_ELF_shtab = NULL;
+char   *p_Source_ELF_shstrtab = NULL;
+char   *p_Source_ELF_strtab = NULL;
+Elf64_Sym  *p_Source_ELF_symtab = NULL;
+uint32_t source_sym_num  = 0;
+
+
+char *elf_read_section(int fd, int idx)
+{
+    char *pt;
+    if (!(pt = (char *)xmalloc(p_Source_ELF_shtab[idx].sh_size))) {
+        ERROR("not enough memory\n");
+        return NULL;
+    }
+
+    file_lseek(fd, p_Source_ELF_shtab[idx].sh_offset, SEEK_SET);
+    file_read(fd, pt, p_Source_ELF_shtab[idx].sh_size);
+
+    return pt;
+
+}
+
+
+int load_elf_symbol(int fd)
+{
+    uint32_t shsize, nid;
+    int i;
+    /* Read ELF header */
+    file_lseek(fd, 0, SEEK_SET);
+
+    if (file_read(fd, &Source_ELF_Header, sizeof(Source_ELF_Header)) != sizeof(Source_ELF_Header))
+    {
+        ERROR("cannot read ELF header\n");
+        return -1;
+    }
+
+    DEBUG("read ELF header from %0x %0x %0x %0x\n",
+        p_Source_ELF_Header->e_ident[EI_MAG0],
+        p_Source_ELF_Header->e_ident[EI_MAG1],
+        p_Source_ELF_Header->e_ident[EI_MAG2],
+        p_Source_ELF_Header->e_ident[EI_MAG3]);
+
+    if (p_Source_ELF_Header->e_ident[EI_MAG0] != ELFMAG0
+      || p_Source_ELF_Header->e_ident[EI_MAG1] != ELFMAG1
+      || p_Source_ELF_Header->e_ident[EI_MAG2] != ELFMAG2
+      || p_Source_ELF_Header->e_ident[EI_MAG3] != ELFMAG3)
+    {
+        ERROR("is not an ELF file\n");
+        return -1;
+    }
+
+    if (!p_Source_ELF_Header->e_shoff || !p_Source_ELF_Header->e_shnum) {
+        ERROR("no section found\n");
+        return -1;
+    }
+
+    /* Read section header table */
+    shsize = p_Source_ELF_Header->e_shnum * p_Source_ELF_Header->e_shentsize;
+    if (!(p_Source_ELF_shtab  = (Elf64_Shdr *)xmalloc(shsize))) {
+        ERROR("not enough memory\n");
+        return -1;
+    }
+
+    file_lseek(fd, p_Source_ELF_Header->e_shoff, SEEK_SET);
+    file_read(fd, p_Source_ELF_shtab , shsize);
+
+    /* Read section header string table */
+    DEBUG("STRING TAB INDEX %d\n", p_Source_ELF_Header->e_shstrndx);
+
+    if (!(p_Source_ELF_shstrtab = elf_read_section(fd, p_Source_ELF_Header->e_shstrndx)))
+    {
+        ERROR("get string table failed\n");
+        return -1;
+    }
+
+
+    /* Read string table */
+    p_Source_ELF_strtab = NULL;
+    for (i = 0; i < p_Source_ELF_Header->e_shnum; i ++) {
+        nid = p_Source_ELF_shtab[i].sh_name;
+        if (!strcmp((char *)&p_Source_ELF_shstrtab[nid], ".strtab")) {
+            p_Source_ELF_strtab = elf_read_section(fd, i);
+            break;
+        }
+    }
+
+
+    /* Read symbol table */
+    p_Source_ELF_symtab = NULL;
+    for (i = 0; i < p_Source_ELF_Header->e_shnum; i ++) {
+        if (p_Source_ELF_shtab[i].sh_type == SHT_SYMTAB) {
+            DEBUG("sym link %d\n", (int)p_Source_ELF_shtab[i].sh_link);
+            p_Source_ELF_symtab = (Elf64_Sym *)elf_read_section(fd, i);
+            break;
+        }
+    }
+
+
+    if( p_Source_ELF_symtab ){
+        source_sym_num = p_Source_ELF_shtab[i].sh_size / p_Source_ELF_shtab[i].sh_entsize;
+        INFO("Total %d symbols loaded\n", source_sym_num);
+    }
+#if 0
+    for(i = 0;i < source_sym_num; i++) {
+        DEBUG("%d idx: %d, info: 0x%x name: %s\n",
+            i,
+            p_Source_ELF_symtab[i].st_name,
+            p_Source_ELF_symtab[i].st_info,
+            &p_Source_ELF_strtab[p_Source_ELF_symtab[i].st_name]);
+    }
+#endif
+    return 0;
+
+}
+
+
+int
+find_symbol_by_name (const char *sym_name, Elf64_Addr *sym_addr, uint32_t *sym_size)
+{
+    uint32_t str_idx, i;
+
+    if (!p_Source_ELF_symtab || !p_Source_ELF_shstrtab) {
+        ERROR("no symbol table loaded\n");
+        return 0;
+    }
+
+    for (i = 0; i <  source_sym_num; i ++) {
+        str_idx = p_Source_ELF_symtab[i].st_name;
+        //DEBUG("size: %d, idx: %d, name: %s\n",(int)p_Source_ELF_symtab[i].st_size, (int)str_idx, &p_Source_ELF_strtab[str_idx]);
+        if (!strcmp(&p_Source_ELF_strtab[str_idx], sym_name)) {
+            if (sym_addr) {
+                *sym_addr = p_Source_ELF_symtab[i].st_value;
+            }
+            if (sym_size) {
+                *sym_size = p_Source_ELF_symtab[i].st_size;
+            }
+            ERROR("FIND SYM IN SYMTAB OK!\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+
+Elf64_Addr
+obj_symbol_final_value (struct obj_symbol *sym)
+{
+    Elf64_Addr value;
+    uint32_t size;
+
+    if (1 != find_symbol_by_name(sym->name, &value, &size))
+    {
+        return 0;
+    }
+
+    return value;
+
+}
+
 

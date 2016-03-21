@@ -91,6 +91,7 @@ arch_apply_relocation (struct obj_file *f,
     struct x86_64_symbol *isym  = (struct x86_64_symbol *)sym;
 
     Elf64_Addr *loc = (Elf64_Addr *)(targsec->contents + rel->r_offset);
+    DEBUG("TARGSEC CONTENT %p\n", targsec->contents);
     Elf64_Addr dot = targsec->header.sh_addr + rel->r_offset;
     //Elf64_Addr got = ifile->got ? ifile->got->header.sh_addr : 0;
 

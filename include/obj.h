@@ -94,6 +94,12 @@ struct obj_symbol_patch_struct
   struct obj_symbol *sym;
 };
 
+
+struct obj_symbol *
+obj_find_symbol (struct obj_file *f, const char *name);
+
+
+
 /* Standard method of finding relocation symbols, sets isym */
 #define obj_find_relsym(isym, f, find, rel, symtab, strtab) \
 	{ \
@@ -116,16 +122,28 @@ struct obj_file *arch_new_file (void);
 struct obj_section *arch_new_section (void);
 struct obj_symbol *arch_new_symbol (void);
 int arch_load_proc_section(struct obj_section *sec, int fp);
+int arch_finalize_section_address (struct obj_file *f, ElfW(Addr) base);
 
+enum obj_reloc arch_apply_relocation (struct obj_file *f,
+				      struct obj_section *targsec,
+				      struct obj_section *symsec,
+				      struct obj_symbol *sym,
+				      ElfW(RelM) *rel, ElfW(Addr) value);
 
+struct obj_file *
+obj_load (int fp, Elf32_Half e_type, const char *filename);
 
 unsigned long obj_elf_hash (const char *name);
 void obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec);
 struct obj_symbol *obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx,
 		int info, int secidx, ElfW(Addr) value, unsigned long size);
 
+int load_elf_symbol(int fd);
 
+Elf64_Addr
+obj_symbol_final_value (struct obj_symbol *sym);
 
+int obj_relocate (struct obj_file *f, ElfW(Addr) base);
 
 
 #endif

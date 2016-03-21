@@ -5,37 +5,68 @@
 #include "file.h"
 #include "obj.h"
 
+
+
 void usage()
 {
     INFO("usage:...\n");
 }
 
+
 int main(int argc, char **argv)
 {
-	int fp;
-    char *filename = argv[1];
-	struct obj_file *f;
+    int ret;
+	int elf_fd;
+    int obj_fd;
+    struct obj_file *elf_f;
 
-    if ( argc < 2 )
+    if ( argc < 3 )
     {
         ERROR("argument err!\n");
         usage();
         return 1;
     }
 
-	fp = file_open(filename, O_RDONLY);
-	if (fp == -1)
+    char *elf_filename = argv[1];
+    char *obj_filename = argv[2];
+
+	elf_fd = file_open(elf_filename, O_RDONLY);
+	if (elf_fd == -1)
 	{
-		ERROR("%s open fail!\n", filename);
+		ERROR("%s open fail!\n", elf_filename);
 		return 1;
 	}
-    DEBUG("%s open ok!\n", filename);
+    DEBUG("%s open ok!\n", elf_filename);
 
-	if ((f = obj_load(fp, ET_REL, filename)) == NULL)
+    obj_fd = file_open(obj_filename, O_RDONLY);
+	if (obj_fd == -1)
+	{
+		ERROR("%s open fail!\n", obj_filename);
+        file_close(elf_fd);
+        return 1;
+	}
+    DEBUG("%s open ok!\n", obj_filename);
+
+	if ((elf_f = obj_load(obj_fd, ET_REL, obj_filename)) == NULL)
 		goto out;
 
+    INFO("obj_load ok!\n");
+
+    INFO("load_elf_symbol....!\n");
+    ret = load_elf_symbol(elf_fd);
+    if (ret == -1)
+        goto out;
+
+    INFO("load_elf_symbol ok!\n");
+
+
+    obj_relocate(elf_f, 0);
+
+    sleep(10000);
+
 out:
-    file_close(fp);
+    file_close(elf_fd);
+    file_close(obj_fd);
 	return 1;
 
 }
