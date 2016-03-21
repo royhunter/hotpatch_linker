@@ -234,15 +234,17 @@ obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
 }
 
 
-#if 1
 ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
 {
     if (sym)
     {
+        //DEBUG("SECIDX: %d\n", sym->secidx);
         if (sym->secidx >= SHN_LORESERVE)
 	        return sym->value;
-        DEBUG("sym->value: %d,  sym->secidx: %d, f->sections[sym->secidx]->header.sh_addr: %d\n",
-            (int)sym->value, (int)sym->secidx,  (int)f->sections[sym->secidx]->header.sh_addr);
+
+        //DEBUG("sym->value: %d,  sym->secidx: %d, f->sections[sym->secidx]->header.sh_addr: %d\n",
+            //(int)sym->value, (int)sym->secidx,  (int)f->sections[sym->secidx]->header.sh_addr);
+
         return sym->value + f->sections[sym->secidx]->header.sh_addr;
     }
     else
@@ -251,10 +253,6 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
         return 0;
     }
 }
-#endif
-
-
-
 
 struct obj_section *
 obj_find_section (struct obj_file *f, const char *name)

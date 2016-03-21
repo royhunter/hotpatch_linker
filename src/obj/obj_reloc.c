@@ -61,9 +61,9 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 		            continue;
                 }
                 obj_find_relsym(intsym, f, f, rel, symtab, strtab);
-                //DEBUG("WANT TO FIND SYM: %s\n", intsym->name);
+                DEBUG("WANT TO FIND SYM: %s\n", intsym->name);
                 value = obj_symbol_final_value(f, intsym);
-                //DEBUG("SYM VALUE: 0x%x\n", (int)value);
+                DEBUG("SYM VALUE: 0x%x\n", (int)value);
             }
         #if SHT_RELM == SHT_RELA
             value += rel->r_addend;
