@@ -483,7 +483,6 @@ find_symbol_by_name (const char *sym_name, Elf64_Addr *sym_addr, uint32_t *sym_s
 
     for (i = 0; i <  source_sym_num; i ++) {
         str_idx = p_Source_ELF_symtab[i].st_name;
-        //DEBUG("size: %d, idx: %d, name: %s\n",(int)p_Source_ELF_symtab[i].st_size, (int)str_idx, &p_Source_ELF_strtab[str_idx]);
         if (!strcmp(&p_Source_ELF_strtab[str_idx], sym_name)) {
             if (sym_addr) {
                 *sym_addr = p_Source_ELF_symtab[i].st_value;
@@ -500,7 +499,7 @@ find_symbol_by_name (const char *sym_name, Elf64_Addr *sym_addr, uint32_t *sym_s
 }
 
 
-
+#if 0
 Elf64_Addr
 obj_symbol_final_value (struct obj_symbol *sym)
 {
@@ -513,7 +512,9 @@ obj_symbol_final_value (struct obj_symbol *sym)
     }
 
     return value;
-
 }
+#endif
+
+
 
 

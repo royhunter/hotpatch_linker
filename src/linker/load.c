@@ -60,7 +60,7 @@ int main(int argc, char **argv)
         goto out;
 
     INFO("load_elf_symbol ok!\n");
-
+    add_symbol_from_exec(obj_f);
 
     obj_relocate(obj_f, 0);
 

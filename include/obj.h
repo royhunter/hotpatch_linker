@@ -140,12 +140,12 @@ struct obj_symbol *obj_add_symbol (struct obj_file *f, const char *name, unsigne
 
 int load_elf_symbol(int fd);
 
-Elf64_Addr
-obj_symbol_final_value (struct obj_symbol *sym);
+ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym);
 
 int obj_relocate (struct obj_file *f, ElfW(Addr) base);
 struct obj_section *
 obj_find_section (struct obj_file *f, const char *name);
+void add_symbol_from_exec(struct obj_file *f);
 
 
 #endif

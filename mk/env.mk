@@ -37,7 +37,7 @@ endif
 PROJ_CFLAGS = -I$(TOP)/include
 
 
-CFLAGS += $(DEBUG_FLAGS) -Wall $(PROJ_CFLAGS)
+CFLAGS += $(DEBUG_FLAGS) -Werror $(PROJ_CFLAGS)
 
 
 

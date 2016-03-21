@@ -82,6 +82,37 @@ obj_load_order_prio(struct obj_section *a)
   return ac;
 }
 
+extern Elf64_Ehdr Source_ELF_Header;
+extern Elf64_Ehdr *p_Source_ELF_Header;
+extern Elf64_Shdr *p_Source_ELF_shtab;
+extern char   *p_Source_ELF_shstrtab;
+extern char   *p_Source_ELF_strtab;
+extern Elf64_Sym  *p_Source_ELF_symtab;
+extern uint32_t source_sym_num;
+
+void add_symbol_from_exec(struct obj_file *f)
+{
+    int i;
+    for( i = 0; i < source_sym_num; i++)
+    {
+
+        struct obj_symbol *sym;
+        char *name = &p_Source_ELF_strtab[p_Source_ELF_symtab[i].st_name];
+
+        sym = obj_find_symbol(f, (char *)name);
+        if( sym && ELFW(ST_BIND) (sym->info) != STB_LOCAL)
+        {
+            sym = obj_add_symbol(f, (char *) name, -1,
+				  ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+					     SHN_HIRESERVE + 2, p_Source_ELF_symtab[i].st_value, 0);
+
+            DEBUG("%d  %s, 0x%x\n", i, name, (int)p_Source_ELF_symtab[i].st_value);
+        }
+    }
+
+}
+
+
 struct obj_symbol *
 obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int info, int secidx, ElfW(Addr) value, unsigned long size)
 {
@@ -203,7 +234,7 @@ obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
 }
 
 
-#if 0
+#if 1
 ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
 {
     if (sym)
@@ -211,7 +242,7 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
         if (sym->secidx >= SHN_LORESERVE)
 	        return sym->value;
         DEBUG("sym->value: %d,  sym->secidx: %d, f->sections[sym->secidx]->header.sh_addr: %d\n",
-            sym->value, sym->secidx,  f->sections[sym->secidx]->header.sh_addr);
+            (int)sym->value, (int)sym->secidx,  (int)f->sections[sym->secidx]->header.sh_addr);
         return sym->value + f->sections[sym->secidx]->header.sh_addr;
     }
     else
