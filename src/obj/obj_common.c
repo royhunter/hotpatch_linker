@@ -81,12 +81,12 @@ obj_load_order_prio(struct obj_section *a)
     return ac;
 }
 
-extern Elf64_Ehdr Source_ELF_Header;
-extern Elf64_Ehdr *p_Source_ELF_Header;
-extern Elf64_Shdr *p_Source_ELF_shtab;
+extern ElfW(Ehdr) Source_ELF_Header;
+extern ElfW(Ehdr) *p_Source_ELF_Header;
+extern ElfW(Shdr) *p_Source_ELF_shtab;
 extern char   *p_Source_ELF_shstrtab;
 extern char   *p_Source_ELF_strtab;
-extern Elf64_Sym  *p_Source_ELF_symtab;
+extern ElfW(Sym)  *p_Source_ELF_symtab;
 extern uint32_t source_sym_num;
 
 void add_symbol_from_exec(struct obj_file *f)

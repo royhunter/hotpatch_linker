@@ -1,0 +1,62 @@
+TOP=.
+ARCH=x86_64
+include $(TOP)/mk/env.mk
+export PROJ_DIR=$(PWD)
+export ARCH
+
+
+################PROGS##################
+PROGS = $(TOP)/bin/$(ARCH)/x86_64_linker
+
+################DIRS###################
+LINKER_DIRS = $(TOP)/src/linker
+OBJ_DIRS = $(TOP)/src/obj
+UTIL_DIRS = $(TOP)/src/util
+ARCH_DIRS = $(TOP)/src/arch/$(ARCH)
+
+SRC_DIRS = $(LINKER_DIRS) $(OBJ_DIRS) $(UTIL_DIRS) $(ARCH_DIRS)
+
+############PROGS USE LOCAL LIBS##########
+PROG_LINKER_LDFLAGS = $(TOP)/lib/$(ARCH)/liblinker.a  $(TOP)/lib/$(ARCH)/libobj.a $(TOP)/lib/$(ARCH)/libutil.a $(TOP)/lib/$(ARCH)/libx86_64.a
+
+#################VERSION DIR#####################
+
+
+#################EXTRA CLEAN#####################
+
+
+CFLAGS += -DPLATFORM_X86_64
+export PROG_LINKER_LDFLAGS
+export CFLAGS
+
+
+.PHONY: all print_platform $(SRC_DIRS) clean
+
+all: print_platform $(SRC_DIRS) $(PROGS)
+
+print_platform:
+	@echo "###################################"
+	@echo "             $(PLATFORM)"
+	@echo "###################################"
+	
+	
+$(SRC_DIRS):
+	@mkdir -p $(TOP)/bin/$(ARCH)
+	@mkdir -p $(TOP)/lib/$(ARCH)
+	$(Q) $(MAKE) $(MAKE_DEBUG) --directory=$@
+
+$(TOP)/bin/$(ARCH)/x86_64_linker: $(SRC_DIRS)
+	$(Q) $(MAKE) $(MAKE_DEBUG) -f $(TOP)/mk/prog.mk x86_64_linker
+	
+
+	  
+clean:
+	$(Q) for d in $(SRC_DIRS); \
+	do \
+	$(MAKE) clean --directory=$$d; \
+	done \
+	
+	$(Q) -rm -f $(PROGS)
+	$(Q) -rm -rf $(TOP)/bin/$(ARCH)  $(TOP)/lib/$(ARCH) $(TOP)/build/$(ARCH)
+
+

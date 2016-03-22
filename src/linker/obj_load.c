@@ -351,13 +351,13 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 
 
 
-//ElfW(Ehdr) Source_ELF_Header;
-Elf64_Ehdr Source_ELF_Header;
-Elf64_Ehdr *p_Source_ELF_Header = &Source_ELF_Header;
-Elf64_Shdr *p_Source_ELF_shtab = NULL;
+
+ElfW(Ehdr) Source_ELF_Header;
+ElfW(Ehdr) *p_Source_ELF_Header = &Source_ELF_Header;
+ElfW(Shdr) *p_Source_ELF_shtab = NULL;
 char   *p_Source_ELF_shstrtab = NULL;
 char   *p_Source_ELF_strtab = NULL;
-Elf64_Sym  *p_Source_ELF_symtab = NULL;
+ElfW(Sym)  *p_Source_ELF_symtab = NULL;
 uint32_t source_sym_num  = 0;
 
 
@@ -412,7 +412,7 @@ int load_elf_symbol(int fd)
 
     /* Read section header table */
     shsize = p_Source_ELF_Header->e_shnum * p_Source_ELF_Header->e_shentsize;
-    if (!(p_Source_ELF_shtab  = (Elf64_Shdr *)xmalloc(shsize))) {
+    if (!(p_Source_ELF_shtab  = (ElfW(Shdr) *)xmalloc(shsize))) {
         ERROR("not enough memory\n");
         return -1;
     }
@@ -446,7 +446,7 @@ int load_elf_symbol(int fd)
     for (i = 0; i < p_Source_ELF_Header->e_shnum; i ++) {
         if (p_Source_ELF_shtab[i].sh_type == SHT_SYMTAB) {
             DEBUG("sym link %d\n", (int)p_Source_ELF_shtab[i].sh_link);
-            p_Source_ELF_symtab = (Elf64_Sym *)elf_read_section(fd, i);
+            p_Source_ELF_symtab = (ElfW(Sym) *)elf_read_section(fd, i);
             break;
         }
     }
@@ -471,7 +471,7 @@ int load_elf_symbol(int fd)
 
 
 int
-find_symbol_by_name (const char *sym_name, Elf64_Addr *sym_addr, uint32_t *sym_size)
+find_symbol_by_name (const char *sym_name, ElfW(Addr) *sym_addr, uint32_t *sym_size)
 {
     uint32_t str_idx, i;
 

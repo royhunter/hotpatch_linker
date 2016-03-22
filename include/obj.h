@@ -3,14 +3,18 @@
 #include <sys/types.h>
 #include <elf.h>
 
-#define ELF_MACHINE_H "elf_x86_64.h"
 
 
-//#define __MIPSEB__
-//#define ELF_MACHINE_H "elf_mips.h"
 
 
-#include ELF_MACHINE_H
+#ifdef PLATFORM_X86_64
+#include "elf_x86_64.h"
+#elif defined PLATFORM_MIPS32
+#define __MIPSEB__
+#include "elf_mips32.h"
+#endif
+
+
 
 
 #ifndef ElfW

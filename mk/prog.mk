@@ -4,10 +4,12 @@ TOP = ..
 
 PROG_LINKER_LDFLAGS += 
 
-linker: FORCE
+x86_64_linker: FORCE
 	@echo [LD] $@
-	$(Q) $(CC) -o $(PROJ_DIR)/bin/$@ $(PROG_LINKER_LDFLAGS) 
-
+	$(Q) $(CC) -o $(PROJ_DIR)/bin/$(ARCH)/$@ $(PROG_LINKER_LDFLAGS) 
 	
+mips32_linker: FORCE
+	@echo [LD] $@
+	$(Q) $(CC) -o $(PROJ_DIR)/bin/$(ARCH)/$@ $(PROG_LINKER_LDFLAGS) 
 
-.PHONY:linker FORCE
+.PHONY:x86_64_linker FORCE

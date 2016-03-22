@@ -1,12 +1,12 @@
 TOP=../..
 include $(TOP)/mk/env.mk
 
-BUILD_DIR=$(TOP)/build
+BUILD_DIR=$(TOP)/build/$(ARCH)
 SOURCES:=$(wildcard *.c)
 OBJS:=$(addprefix $(BUILD_DIR)/,$(subst .c,.o,$(SOURCES)))
 DEPS:=$(addprefix $(BUILD_DIR)/,$(subst .c,.d,$(SOURCES)))
 
-TARGET=$(TOP)/lib/libobj.a
+TARGET=$(TOP)/lib/$(ARCH)/libobj.a
 
 .PHONY: all clean
 

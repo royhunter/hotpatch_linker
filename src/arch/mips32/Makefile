@@ -1,4 +1,4 @@
-TOP=../..
+TOP=../../..
 include $(TOP)/mk/env.mk
 
 BUILD_DIR=$(TOP)/build/$(ARCH)
@@ -6,7 +6,7 @@ SOURCES:=$(wildcard *.c)
 OBJS:=$(addprefix $(BUILD_DIR)/,$(subst .c,.o,$(SOURCES)))
 DEPS:=$(addprefix $(BUILD_DIR)/,$(subst .c,.d,$(SOURCES)))
 
-TARGET=$(TOP)/lib/$(ARCH)/libutil.a
+TARGET=$(TOP)/lib/$(ARCH)/libmips32.a
 
 .PHONY: all clean
 
