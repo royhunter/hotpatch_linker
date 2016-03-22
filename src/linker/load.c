@@ -10,6 +10,7 @@
 void usage()
 {
     INFO("usage:...\n");
+    INFO("linker elf_file obj_file\n");
 }
 
 static void print_load_map(struct obj_file *f)

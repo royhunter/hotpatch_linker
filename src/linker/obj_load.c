@@ -2,6 +2,7 @@
 #include "obj.h"
 #include "file.h"
 
+#include <arpa/inet.h>
 
 char *sym_binding[] = {"Local", "Global", "Weak"};
 char *sym_type[] = {"NONE", "OBJECT", "FUNC", "SECTION", "FILE"};
@@ -67,14 +68,16 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 
 
     DEBUG("Version: %d\n", f->header.e_ident[EI_VERSION]);
-
+    #ifdef PLATFORM_MIPS32
+    DEBUG("Machine: %d\n", htons(f->header.e_machine));
+    #endif
 
     if (f->header.e_ident[EI_CLASS] != ELFCLASSM
       || f->header.e_ident[EI_DATA] != ELFDATAM
       || f->header.e_ident[EI_VERSION] != EV_CURRENT
       || !MATCH_MACHINE(f->header.e_machine))
     {
-        ERROR("ELF file %s not for this architecture", filename);
+        ERROR("ELF file %s not for this architecture\n", filename);
         return NULL;
     }
 
