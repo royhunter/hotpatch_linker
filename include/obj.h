@@ -1,11 +1,14 @@
 #ifndef __HOTPATCH_OBJ_H__
 #define __HOTPATCH_OBJ_H__
-
-
 #include <sys/types.h>
 #include <elf.h>
 
 #define ELF_MACHINE_H "elf_x86_64.h"
+
+
+//#define __MIPSEB__
+//#define ELF_MACHINE_H "elf_mips.h"
+
 
 #include ELF_MACHINE_H
 
@@ -145,7 +148,11 @@ struct obj_section *obj_find_section (struct obj_file *f, const char *name);
 int obj_check_undefineds(struct obj_file *f, int quiet);
 void obj_allocate_commons(struct obj_file *f);
 unsigned long obj_load_size (struct obj_file *f);
+int obj_create_image (struct obj_file *f, char *image);
 
+struct obj_section *obj_create_alloced_section (struct obj_file *f, char *name,
+			    unsigned long align, unsigned long size,
+			    unsigned long flags);
 
 
 void add_symbol_from_exec(struct obj_file *f);

@@ -108,11 +108,36 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 }
 
 
+
 int
 obj_check_undefineds(struct obj_file *f, int quiet)
 {
-    return 1;
+    unsigned long i;
+    int ret = 1;
+
+    for (i = 0; i < HASH_BUCKETS; ++i)
+    {
+        struct obj_symbol *sym;
+        for (sym = f->symtab[i]; sym ; sym = sym->next)
+        if (sym->secidx == SHN_UNDEF)
+        {
+	        if (ELFW(ST_BIND)(sym->info) == STB_WEAK)
+            {
+		        sym->secidx = SHN_ABS;
+		        sym->value = 0;
+	        }
+	        else if (sym->r_type) /* assumes R_arch_NONE is 0 on all arch */
+	        {
+		        if (!quiet)
+			        ERROR("%s: unresolved symbol %s", f->filename, sym->name);
+		        ret = 0;
+	        }
+	    }
+    }
+
+    return ret;
 }
+
 
 
 void
@@ -262,3 +287,25 @@ obj_load_size (struct obj_file *f)
     return dot;
 }
 
+
+int
+obj_create_image (struct obj_file *f, char *image)
+{
+    struct obj_section *sec;
+    ElfW(Addr) base = f->baseaddr;
+
+  for (sec = f->load_order; sec ; sec = sec->load_next)
+    {
+      char *secimg;
+
+      if (sec->contents == 0)
+	continue;
+
+      secimg = image + (sec->header.sh_addr - base);
+
+      /* Note that we allocated data for NOBITS sections earlier.  */
+      memcpy(secimg, sec->contents, sec->header.sh_size);
+    }
+
+  return 1;
+}

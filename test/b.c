@@ -1,4 +1,3 @@
-
 extern int x_global;
 //extern int e_global_extern;
 int y_global;

@@ -94,7 +94,6 @@ void add_symbol_from_exec(struct obj_file *f)
     int i;
     for( i = 0; i < source_sym_num; i++)
     {
-
         struct obj_symbol *sym;
         char *name = &p_Source_ELF_strtab[p_Source_ELF_symtab[i].st_name];
 
@@ -219,6 +218,33 @@ found:
   sym->r_type = 0;	/* should be R_arch_NONE for all arch */
 
   return sym;
+}
+
+
+struct obj_section *
+obj_create_alloced_section (struct obj_file *f, char *name,
+			    unsigned long align, unsigned long size,
+			    unsigned long flags)
+{
+  int newidx = f->header.e_shnum++;
+  struct obj_section *sec;
+
+  f->sections = xrealloc(f->sections, (newidx+1) * sizeof(sec));
+  f->sections[newidx] = sec = arch_new_section();
+
+  memset(sec, 0, sizeof(*sec));
+  sec->header.sh_type = SHT_PROGBITS;
+  sec->header.sh_flags = flags | SHF_ALLOC;
+  sec->header.sh_size = size;
+  sec->header.sh_addralign = align;
+  sec->name = name;
+  sec->idx = newidx;
+  if (size)
+    sec->contents = xmalloc(size);
+
+  obj_insert_section_load_order(f, sec);
+
+  return sec;
 }
 
 

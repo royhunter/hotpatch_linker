@@ -80,10 +80,62 @@ arch_finalize_section_address(struct obj_file *f, Elf64_Addr base)
 }
 
 
+
+
 int
 arch_create_got (struct obj_file *f)
 {
-    return 1;
+    struct x86_64_file *ifile = (struct x86_64_file *)f;
+    int i, n, offset = 0, gotneeded = 0;
+
+    n = ifile->root.header.e_shnum;
+    for (i = 0; i < n; ++i)
+    {
+        struct obj_section *relsec, *symsec, *strsec;
+        Elf64_Rela *rel, *relend;
+        Elf64_Sym *symtab;
+        const char *strtab;
+
+        relsec = ifile->root.sections[i];
+        if (relsec->header.sh_type != SHT_REL)
+            continue;
+
+        symsec = ifile->root.sections[relsec->header.sh_link];
+        strsec = ifile->root.sections[symsec->header.sh_link];
+
+        rel = (Elf64_Rela *)relsec->contents;
+        relend = rel + (relsec->header.sh_size / sizeof(Elf64_Rela));
+        symtab = (Elf64_Sym *)symsec->contents;
+        strtab = (const char *)strsec->contents;
+
+        for (; rel < relend; ++rel)
+	    {
+	        struct x86_64_symbol *intsym;
+
+	        switch (ELF64_R_TYPE(rel->r_info))
+	        {
+	            case R_X86_64_GOTPCREL:
+	            case R_X86_64_GOT32:
+	                gotneeded = 1;
+	            default:
+	                continue;
+	        }
+
+	        obj_find_relsym(intsym, f, &ifile->root, rel, symtab, strtab);
+
+	        if (!intsym->gotent.offset_done)
+	        {
+	            intsym->gotent.offset_done = 1;
+	            intsym->gotent.offset = offset;
+	            offset += 4;
+	        }
+	    }
+    }
+
+    if (offset > 0 || gotneeded)
+        ifile->got = obj_create_alloced_section(&ifile->root, ".got", 8, offset, SHF_WRITE);
+
+  return 1;
 }
 
 

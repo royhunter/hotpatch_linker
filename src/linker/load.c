@@ -117,6 +117,7 @@ int main(int argc, char **argv)
     int obj_fd;
     unsigned long image_size;
     struct obj_file *obj_f;
+    void *image;
 
     if ( argc < 3 )
     {
@@ -149,7 +150,6 @@ int main(int argc, char **argv)
 		goto out;
 
     INFO("obj_load ok!\n");
-
     //format_patch_layout(obj_f);
 
     INFO("load_elf_symbol....!\n");
@@ -160,9 +160,9 @@ int main(int argc, char **argv)
     INFO("load_elf_symbol ok!\n");
     add_symbol_from_exec(obj_f);
 
-    arch_create_got(obj_f); //STACK
+    arch_create_got(obj_f);
 
-    obj_check_undefineds(obj_f, 1);//STACK
+    obj_check_undefineds(obj_f, 1);
 
     obj_allocate_commons(obj_f);
 
@@ -170,6 +170,13 @@ int main(int argc, char **argv)
     INFO("image size 0x%x\n", (int)image_size);
 
     obj_relocate(obj_f, 0);
+
+    /*
+	 * Whew!  All of the initialization is complete.
+	 * Collect the final  image.
+	 */
+    image = xmalloc(image_size);
+	obj_create_image(obj_f, image);
 
     print_load_map(obj_f);
 
