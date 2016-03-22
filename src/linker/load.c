@@ -12,6 +12,103 @@ void usage()
     INFO("usage:...\n");
 }
 
+static void print_load_map(struct obj_file *f)
+{
+	struct obj_symbol *sym;
+	struct obj_symbol **all, **p;
+	struct obj_section *sec;
+	int load_map_cmp(const void *a, const void *b) {
+		struct obj_symbol **as = (struct obj_symbol **) a;
+		struct obj_symbol **bs = (struct obj_symbol **) b;
+		unsigned long aa = obj_symbol_final_value(f, *as);
+		unsigned long ba = obj_symbol_final_value(f, *bs);
+		 return aa < ba ? -1 : aa > ba ? 1 : 0;
+	}
+	int i, nsyms, *loaded;
+    INFO("========================================\n");
+	/* Report on the section layout.  */
+
+	INFO("Sections:       Size      %-*s  Align\n",
+		(int) (2 * sizeof(void *)), "Address");
+
+	for (sec = f->load_order; sec; sec = sec->load_next) {
+		int a;
+		unsigned long tmp;
+
+		for (a = -1, tmp = sec->header.sh_addralign; tmp; ++a)
+			tmp >>= 1;
+		if (a == -1)
+			a = 0;
+
+		INFO("%-15s %08lx  %0*lx  2**%d\n",
+			sec->name,
+			(long)sec->header.sh_size,
+			(int) (2 * sizeof(void *)),
+			(long)sec->header.sh_addr,
+			a);
+	}
+
+	/* Quick reference which section indicies are loaded.  */
+
+	loaded = alloca(sizeof(int) * (i = f->header.e_shnum));
+	while (--i >= 0)
+		loaded[i] = (f->sections[i]->header.sh_flags & SHF_ALLOC) != 0;
+
+	/* Collect the symbols we'll be listing.  */
+
+	for (nsyms = i = 0; i < HASH_BUCKETS; ++i)
+		for (sym = f->symtab[i]; sym; sym = sym->next)
+			if (sym->secidx <= SHN_HIRESERVE
+			    && (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+				++nsyms;
+
+	all = alloca(nsyms * sizeof(struct obj_symbol *));
+
+	for (i = 0, p = all; i < HASH_BUCKETS; ++i)
+		for (sym = f->symtab[i]; sym; sym = sym->next)
+			if (sym->secidx <= SHN_HIRESERVE
+			    && (sym->secidx >= SHN_LORESERVE || loaded[sym->secidx]))
+				*p++ = sym;
+
+	/* Sort them by final value.  */
+	qsort(all, nsyms, sizeof(struct obj_file *), load_map_cmp);
+
+	/* And list them.  */
+	INFO("\nSymbols:\n");
+	for (p = all; p < all + nsyms; ++p) {
+		char type = '?';
+		unsigned long value;
+
+		sym = *p;
+		if (sym->secidx == SHN_ABS) {
+			type = 'A';
+			value = sym->value;
+		} else if (sym->secidx == SHN_UNDEF) {
+			type = 'U';
+			value = 0;
+		} else {
+			struct obj_section *sec = f->sections[sym->secidx];
+
+			if (sec->header.sh_type == SHT_NOBITS)
+				type = 'B';
+			else if (sec->header.sh_flags & SHF_ALLOC) {
+				if (sec->header.sh_flags & SHF_EXECINSTR)
+					type = 'T';
+				else if (sec->header.sh_flags & SHF_WRITE)
+					type = 'D';
+				else
+					type = 'R';
+			}
+			value = sym->value + sec->header.sh_addr;
+		}
+
+		if (ELFW(ST_BIND) (sym->info) == STB_LOCAL)
+			type = tolower(type);
+
+		INFO("%0*lx %c %s\n", (int) (2 * sizeof(void *)), value,
+			type, sym->name);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -62,8 +159,17 @@ int main(int argc, char **argv)
     INFO("load_elf_symbol ok!\n");
     add_symbol_from_exec(obj_f);
 
+    arch_create_got(obj_f); //STACK
+
+    obj_check_undefineds(obj_f, 1);//STACK
+
+    obj_allocate_commons(obj_f);
+
+    obj_load_size(obj_f);
+
     obj_relocate(obj_f, 0);
 
+    print_load_map(obj_f);
     //sleep(10000);
 
 out:

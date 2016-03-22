@@ -71,9 +71,18 @@ arch_finalize_section_address(struct obj_file *f, Elf64_Addr base)
     int  i, n = f->header.e_shnum;
 
     f->baseaddr = base;
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < n; ++i) {
+        DEBUG("section: %d,  addr is 0x%x\n", i, (int)f->sections[i]->header.sh_addr);
         f->sections[i]->header.sh_addr += base;
+    }
 
+    return 1;
+}
+
+
+int
+arch_create_got (struct obj_file *f)
+{
     return 1;
 }
 

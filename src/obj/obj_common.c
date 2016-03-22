@@ -55,31 +55,30 @@ obj_find_symbol (struct obj_file *f, const char *name)
 static int
 obj_load_order_prio(struct obj_section *a)
 {
-  unsigned long af, ac;
+    unsigned long af, ac;
 
-  af = a->header.sh_flags;
+    af = a->header.sh_flags;
 
-  ac = 0;
-  if (a->name[0] != '.'
-      || strlen(a->name) != 10
-      || strcmp(a->name + 5, ".init"))
-    ac |= 64;
-  if (af & SHF_ALLOC) ac |= 32;
-  if (af & SHF_EXECINSTR) ac |= 16;
-  if (!(af & SHF_WRITE)) ac |= 8;
-  if (a->header.sh_type != SHT_NOBITS) ac |= 4;
-  /* Desired order is
-		P S  AC & 7
-	.data	1 0  4
-	.got	1 1  3
-	.sdata  1 1  1
-	.sbss   0 1  1
-	.bss    0 0  0  */
-  if (strcmp (a->name, ".got") == 0) ac |= 2;
-  if (af & ARCH_SHF_SHORT)
-    ac = (ac & ~4) | 1;
+    ac = 0;
+    if (a->name[0] != '.' || strlen(a->name) != 10 || strcmp(a->name + 5, ".init"))
+        ac |= 64;
 
-  return ac;
+    if (af & SHF_ALLOC) ac |= 32;
+    if (af & SHF_EXECINSTR) ac |= 16;
+    if (!(af & SHF_WRITE)) ac |= 8;
+    if (a->header.sh_type != SHT_NOBITS) ac |= 4;
+    /* Desired order is
+		    P S  AC & 7
+	    .data	1 0  4
+	    .got	1 1  3
+	    .sdata  1 1  1
+	    .sbss   0 1  1
+	    .bss    0 0  0  */
+    if (strcmp (a->name, ".got") == 0) ac |= 2;
+    if (af & ARCH_SHF_SHORT)
+        ac = (ac & ~4) | 1;
+
+    return ac;
 }
 
 extern Elf64_Ehdr Source_ELF_Header;
@@ -224,13 +223,13 @@ found:
 void
 obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
 {
-  struct obj_section **p;
-  int prio = obj_load_order_prio(sec);
-  for (p = f->load_order_search_start; *p ; p = &(*p)->load_next)
-    if (obj_load_order_prio(*p) < prio)
-      break;
-  sec->load_next = *p;
-  *p = sec;
+    struct obj_section **p;
+    int prio = obj_load_order_prio(sec);
+    for (p = f->load_order_search_start; *p ; p = &(*p)->load_next)
+        if (obj_load_order_prio(*p) < prio)
+            break;
+    sec->load_next = *p;
+    *p = sec;
 }
 
 

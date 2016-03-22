@@ -4,6 +4,7 @@
 
 gcc -o test a.c
 
+#gcc -c -fPIC b.c
 gcc -c b.c
 
 echo "readelf -h test"

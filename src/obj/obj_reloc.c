@@ -28,7 +28,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
         relsec = f->sections[i];
         if (relsec->header.sh_type != SHT_RELM)
 	        continue;
-        //DEBUG("RELSEC sh_info %d\n", (int)relsec->header.sh_info);
+
         symsec = f->sections[relsec->header.sh_link];
         targsec = f->sections[relsec->header.sh_info];// target for section of this rel section
         strsec = f->sections[symsec->header.sh_link];
@@ -99,4 +99,158 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
     return ret;
 }
 
+
+int
+obj_check_undefineds(struct obj_file *f, int quiet)
+{
+    return 1;
+}
+
+
+void
+obj_allocate_commons(struct obj_file *f)
+{
+    struct common_entry
+    {
+        struct common_entry *next;
+        struct obj_symbol *sym;
+    } *common_head = NULL;
+
+    unsigned long i;
+
+    for (i = 0; i < HASH_BUCKETS; ++i)
+    {
+        struct obj_symbol *sym;
+        for (sym = f->symtab[i]; sym ; sym = sym->next) {
+    	    if (sym->secidx == SHN_COMMON)
+    	    {
+    	        /*
+    	                    Collect all COMMON symbols and sort them by size so as to
+    	                    minimize space wasted by alignment requirements.
+    	                    */
+    	        {
+    	            struct common_entry **p, *n;
+    	            for (p = &common_head; *p ; p = &(*p)->next)
+    		            if (sym->size <= (*p)->sym->size)
+    		                break;
+
+        	        n = alloca(sizeof(*n));
+        	        n->next = *p;
+        	        n->sym = sym;
+        	        *p = n;
+    	        }
+    	    }
+        }
+    }
+
+    for (i = 1; i < f->local_symtab_size; ++i)
+    {
+        struct obj_symbol *sym = f->local_symtab[i];
+        if (sym && sym->secidx == SHN_COMMON)
+	    {
+	        struct common_entry **p, *n;
+	        for (p = &common_head; *p ; p = &(*p)->next)
+            {
+	            if (sym == (*p)->sym)
+	                break;
+	            else if (sym->size < (*p)->sym->size)
+	            {
+		            n = alloca(sizeof(*n));
+		            n->next = *p;
+		            n->sym = sym;
+		            *p = n;
+		            break;
+                }
+            }
+        }
+    }
+
+    if (common_head)
+    {
+        /* Find the bss section.  */
+        for (i = 0; i < f->header.e_shnum; ++i)
+            if (f->sections[i]->header.sh_type == SHT_NOBITS)
+                break;
+
+        /* If for some reason there hadn't been one, create one.  */
+        if (i == f->header.e_shnum)
+        {
+            struct obj_section *sec;
+
+            f->sections = xrealloc(f->sections, (i+1) * sizeof(sec));
+            f->sections[i] = sec = arch_new_section();
+            f->header.e_shnum = i+1;
+
+            memset(sec, 0, sizeof(*sec));
+            sec->header.sh_type = SHT_PROGBITS;
+            sec->header.sh_flags = SHF_WRITE|SHF_ALLOC;
+            sec->name = ".bss";
+            sec->idx = i;
+        }
+
+        /* Allocate the COMMONS.  */
+        {
+            ElfW(Addr) bss_size = f->sections[i]->header.sh_size;
+            ElfW(Addr) max_align = f->sections[i]->header.sh_addralign;
+            struct common_entry *c;
+
+            for (c = common_head; c ; c = c->next)
+            {
+                ElfW(Addr) align = c->sym->value;
+
+                if (align > max_align)
+	                max_align = align;
+                if (bss_size & (align - 1))
+                    bss_size = (bss_size | (align - 1)) + 1;
+
+                c->sym->secidx = i;
+                c->sym->value = bss_size;
+
+	            bss_size += c->sym->size;
+            }
+
+            f->sections[i]->header.sh_size = bss_size;
+            f->sections[i]->header.sh_addralign = max_align;
+        }
+    }
+
+    /* For the sake of patch relocation and parameter initialization,
+            allocate zeroed data for NOBITS sections now.  Note that after
+            this we cannot assume NOBITS are really empty.  */
+    for (i = 0; i < f->header.e_shnum; ++i)
+    {
+        struct obj_section *s = f->sections[i];
+        if (s->header.sh_type == SHT_NOBITS)
+        {
+            if (s->header.sh_size)
+                s->contents = memset(xmalloc(s->header.sh_size), 0, s->header.sh_size);
+            else
+                s->contents = NULL;
+            s->header.sh_type = SHT_PROGBITS;
+        }
+    }
+}
+
+unsigned long
+obj_load_size (struct obj_file *f)
+{
+    unsigned long dot = 0;
+    struct obj_section *sec;
+
+    /* Finalize the positions of the sections relative to one another.  */
+
+    for (sec = f->load_order; sec ; sec = sec->load_next)
+    {
+        ElfW(Addr) align;
+
+        align = sec->header.sh_addralign;
+        if (align && (dot & (align - 1)))
+            dot = (dot | (align - 1)) + 1;
+
+        sec->header.sh_addr = dot;
+        dot += sec->header.sh_size;
+    }
+
+    return dot;
+}
 

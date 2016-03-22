@@ -207,10 +207,9 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         {
             sec->header.sh_flags &= ~SHF_ALLOC;
         }
-        //DEBUG("SHF_ALLOC :%d\n", sec->header.sh_flags & SHF_ALLOC);
+
         if (sec->header.sh_flags & SHF_ALLOC)
         {
-            DEBUG("section flag: %d\n", (int)sec->header.sh_flags);
             obj_insert_section_load_order(f, sec);
         }
 
