@@ -115,6 +115,7 @@ int main(int argc, char **argv)
     int ret;
 	int elf_fd;
     int obj_fd;
+    unsigned long image_size;
     struct obj_file *obj_f;
 
     if ( argc < 3 )
@@ -165,7 +166,8 @@ int main(int argc, char **argv)
 
     obj_allocate_commons(obj_f);
 
-    obj_load_size(obj_f);
+    image_size = obj_load_size(obj_f);
+    INFO("image size 0x%x\n", (int)image_size);
 
     obj_relocate(obj_f, 0);
 

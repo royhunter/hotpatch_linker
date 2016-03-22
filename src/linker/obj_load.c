@@ -498,21 +498,6 @@ find_symbol_by_name (const char *sym_name, Elf64_Addr *sym_addr, uint32_t *sym_s
 }
 
 
-#if 0
-Elf64_Addr
-obj_symbol_final_value1 (struct obj_symbol *sym)
-{
-    Elf64_Addr value;
-    uint32_t size;
-
-    if (1 != find_symbol_by_name(sym->name, &value, &size))
-    {
-        return 0;
-    }
-
-    return value;
-}
-#endif
 
 
 
