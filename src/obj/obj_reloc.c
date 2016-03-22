@@ -65,6 +65,12 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
                 value = obj_symbol_final_value(f, intsym);
                 DEBUG("SYM VALUE: 0x%x\n", (int)value);
             }
+            if( value == 0)
+            {
+                int n_type = ELFW(ST_TYPE)(intsym->info);
+                int n_binding = ELFW(ST_BIND)(intsym->info);
+                DEBUG("no value sym: %s, %d, %d\n", intsym->name, n_type, n_binding);
+            }
         #if SHT_RELM == SHT_RELA
             value += rel->r_addend;
         #endif
@@ -73,6 +79,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
             switch (arch_apply_relocation(f,targsec,symsec,intsym,rel,value))
     	    {
     	        case obj_reloc_ok:
+                    DEBUG("obj_reloc_ok\n");
     	            break;
 
     	        case obj_reloc_overflow:

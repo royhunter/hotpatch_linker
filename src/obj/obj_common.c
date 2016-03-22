@@ -129,8 +129,10 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
 	        int o_type = ELFW(ST_TYPE)(o_info);
 	        int o_binding = ELFW(ST_BIND)(o_info);
 
-	        /* A redefinition!  Is it legal?  */
-
+            DEBUG("name:==================%s\n", name);
+            DEBUG("o_type %d, o_binding %d\n", o_type, o_binding);
+            DEBUG("n_type %d, n_binding %d\n", n_type, n_binding);
+            /* A redefinition!  Is it legal?  */
 	        if (secidx == SHN_UNDEF)
 	            return sym;
 	        else if (o_secidx == SHN_UNDEF)

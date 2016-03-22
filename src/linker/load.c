@@ -170,7 +170,6 @@ int main(int argc, char **argv)
     obj_relocate(obj_f, 0);
 
     print_load_map(obj_f);
-    //sleep(10000);
 
 out:
     file_close(elf_fd);
