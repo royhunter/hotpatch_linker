@@ -65,11 +65,12 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
                 value = obj_symbol_final_value(f, intsym);
                 DEBUG("SYM VALUE: 0x%x\n", (int)value);
             }
-            if( value == 0)
+            int n_binding = ELFW(ST_BIND)(intsym->info);
+            if( value == 0 && n_binding == STB_GLOBAL)
             {
-                int n_type = ELFW(ST_TYPE)(intsym->info);
-                int n_binding = ELFW(ST_BIND)(intsym->info);
-                DEBUG("no value sym: %s, %d, %d\n", intsym->name, n_type, n_binding);
+                DEBUG("no value sym: %s\n", intsym->name);
+                ERROR("error: can not relocate sym: %s\n", intsym->name);
+                exit(0);
             }
         #if SHT_RELM == SHT_RELA
             value += rel->r_addend;

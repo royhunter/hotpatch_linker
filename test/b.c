@@ -1,6 +1,6 @@
 
-extern int x_global_extern;
-extern int e_global_extern;
+extern int x_global;
+//extern int e_global_extern;
 int y_global;
 int z_global;
 
@@ -15,13 +15,13 @@ void swap( int *a, int *b)
     static int d;
     int *e;
     char *var_str = "aaaaa";
-	*a = x_global_extern;
+	*a = x_global;
 	*b = y_global;
     *a = z_global;
 
     c = 2;
     d = 3;
 
-    *e = e_global_extern;
+    //*e = e_global_extern;
 
 }
