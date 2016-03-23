@@ -18,6 +18,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     char *shstrtab;
     Elf32_Half type;
     Elf32_Half shentsize;
+    Elf32_Off shoff;
 
     /* Read the file header.  */
     f = arch_new_file();
@@ -125,9 +126,11 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     f->sections = xmalloc(sizeof(struct obj_section *) * shnum);
     memset(f->sections, 0, sizeof(struct obj_section *) * shnum);
 
-    DEBUG("section header offset %d 0x%x\n", (unsigned int)f->header.e_shoff, (unsigned int)f->header.e_shoff);
+    shoff = b2ll(f->header.e_shoff);
+    DEBUG("section header offset %d 0x%x\n", shoff, shoff);
+
     section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
-    file_lseek(fp, f->header.e_shoff, SEEK_SET);
+    file_lseek(fp, shoff, SEEK_SET);
 
     if (file_read(fp, section_headers, sizeof(ElfW(Shdr))*shnum) != sizeof(ElfW(Shdr))*shnum)
     {
