@@ -25,3 +25,9 @@ int file_read(int fd, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+int file_seek_read(int fd, off_t offset, int whence, void *buf, size_t count)
+{
+    lseek(fd, offset, whence);
+    return read(fd, buf, count);
+}
+

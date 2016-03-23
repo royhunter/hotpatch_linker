@@ -56,8 +56,8 @@ static int
 obj_load_order_prio(struct obj_section *a)
 {
     unsigned long af, ac;
-
-    af = a->header.sh_flags;
+    Elf32_Word sh_type = b2ll(a->header.sh_type);
+    af = b2ll(a->header.sh_flags);
 
     ac = 0;
     if (a->name[0] != '.' || strlen(a->name) != 10 || strcmp(a->name + 5, ".init"))
@@ -66,7 +66,7 @@ obj_load_order_prio(struct obj_section *a)
     if (af & SHF_ALLOC) ac |= 32;
     if (af & SHF_EXECINSTR) ac |= 16;
     if (!(af & SHF_WRITE)) ac |= 8;
-    if (a->header.sh_type != SHT_NOBITS) ac |= 4;
+    if (sh_type != SHT_NOBITS) ac |= 4;
     /* Desired order is
 		    P S  AC & 7
 	    .data	1 0  4

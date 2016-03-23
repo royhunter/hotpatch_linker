@@ -8,6 +8,8 @@ char *sym_binding[] = {"Local", "Global", "Weak"};
 char *sym_type[] = {"NONE", "OBJECT", "FUNC", "SECTION", "FILE"};
 
 
+uint32_t byte_rw_method = 0;
+
 
 struct obj_file *
 obj_load (int fp, Elf32_Half e_type, const char *filename)
@@ -130,9 +132,8 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     DEBUG("section header offset %d 0x%x\n", shoff, shoff);
 
     section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
-    file_lseek(fp, shoff, SEEK_SET);
 
-    if (file_read(fp, section_headers, sizeof(ElfW(Shdr))*shnum) != sizeof(ElfW(Shdr))*shnum)
+    if (file_seek_read(fp, shoff, SEEK_SET, section_headers, sizeof(ElfW(Shdr))*shnum) != sizeof(ElfW(Shdr))*shnum)
     {
         ERROR("error reading ELF section headers %s\n", filename);
         return NULL;
@@ -142,14 +143,16 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     for (i = 0; i < shnum; ++i)
     {
         struct obj_section *sec;
+        Elf32_Word sh_size;
+        Elf32_Off sh_offset;
 
         f->sections[i] = sec = arch_new_section();
         memset(sec, 0, sizeof(*sec));
 
         sec->header = section_headers[i];
         sec->idx = i;
-
-        switch (sec->header.sh_type)
+        Elf32_Word sh_type = b2ll(sec->header.sh_type);
+        switch (sh_type)
     	{
         	case SHT_NULL:
         	case SHT_NOTE:
@@ -161,14 +164,16 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         	case SHT_SYMTAB:
         	case SHT_STRTAB:
         	case SHT_RELM:
-                DEBUG("section size: 0x%x, offset: 0x%x\n", (unsigned int)sec->header.sh_size,(unsigned int)sec->header.sh_offset);
-                if (sec->header.sh_size > 0)
+                sh_size = b2ll(sec->header.sh_size);
+                sh_offset = b2ll(sec->header.sh_offset);
+                DEBUG("section size: 0x%x, offset: 0x%x\n", sh_size, sh_offset);
+                if (sh_size > 0)
         	    {
                     sec->contents = xmalloc(sec->header.sh_size);
-        	        file_lseek(fp, sec->header.sh_offset, SEEK_SET);
-        	        if (file_read(fp, sec->contents, sec->header.sh_size) != sec->header.sh_size)
+
+        	        if (file_seek_read(fp, sh_offset, SEEK_SET, sec->contents, sh_size) != sh_size)
         		    {
-        		        ERROR("error reading ELF section data %s: %m", filename);
+        		        ERROR("error reading ELF section data %s\n", filename);
         		        return NULL;
         		    }
         	    }
@@ -177,81 +182,92 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         	    break;
         #if SHT_RELM == SHT_REL
 	        case SHT_RELA:
-                if (sec->header.sh_size) {
-                    ERROR("RELA relocations not supported on this architecture %s", filename);
+                if (sh_size) {
+                    ERROR("RELA relocations not supported on this architecture %s\n", filename);
             	    return NULL;
                 }
                 break;
         #else
 	        case SHT_REL:
-    	        if (sec->header.sh_size) {
-    	            ERROR("REL relocations not supported on this architecture %s", filename);
+    	        if (sh_size) {
+    	            ERROR("REL relocations not supported on this architecture %s\n", filename);
     	            return NULL;
     	        }
     	        break;
         #endif
             default:
-    	        if (sec->header.sh_type >= SHT_LOPROC)
+    	        if (sh_type >= SHT_LOPROC)
     	        {
     	            if (arch_load_proc_section(sec, fp) < 0)
     		            return NULL;
     	            break;
     	        }
-    	        ERROR("can't handle sections of type %ld %s",
-    		        (long)sec->header.sh_type, filename);
+    	        ERROR("can't handle sections of type %ld %s\n",
+    		        (long)sh_type, filename);
     	        return NULL;
         }
     }
 
     /* Do what sort of interpretation as needed by each section.  */
-    shstrtab = f->sections[f->header.e_shstrndx]->contents;
+    Elf32_Half shstrndx = b2ls(f->header.e_shstrndx);
+    shstrtab = f->sections[shstrndx]->contents;
 
     for (i = 0; i < shnum; ++i)
     {
         struct obj_section *sec = f->sections[i];
-        sec->name = shstrtab + sec->header.sh_name;
-        DEBUG("%d name: %s type: %d\n", i, sec->name, sec->header.sh_type);
+        Elf32_Word sh_name = b2ll(sec->header.sh_name);
+        Elf32_Word sh_type = b2ll(sec->header.sh_type);
+        sec->name = shstrtab + sh_name;
+        DEBUG("%d name: %s type: 0x%x\n", i, sec->name, sh_type);
     }
 
     for (i = 0; i < shnum; ++i)
     {
+        Elf32_Word    sh_flags;
         struct obj_section *sec = f->sections[i];
+        Elf32_Word sh_type = b2ll(sec->header.sh_type);
 
         if (strcmp(sec->name, ".modinfo") == 0 || strcmp(sec->name, ".modstring") == 0)
         {
-            sec->header.sh_flags &= ~SHF_ALLOC;
+            sh_flags = b2ll(sec->header.sh_flags);
+            sh_flags &= ~SHF_ALLOC;
+            sec->header.sh_flags = l2bl(sh_flags);
         }
+        sh_flags = b2ll(sec->header.sh_flags);
 
-        if (sec->header.sh_flags & SHF_ALLOC)
+        if (sh_flags & SHF_ALLOC)
         {
             obj_insert_section_load_order(f, sec);
         }
 
-        switch (sec->header.sh_type)
+        switch (sh_type)
 	    {
             case SHT_SYMTAB:
             {
 	            unsigned long nsym, j;
 	            char *strtab;
 	            ElfW(Sym) *sym;
-
-	            if (sec->header.sh_entsize != sizeof(ElfW(Sym)))
+                Elf32_Word    sh_entsize = b2ll(sec->header.sh_entsize);
+                Elf32_Word    sh_link = b2ll(sec->header.sh_link);
+                Elf32_Word    sh_size = b2ll(sec->header.sh_size);
+                Elf32_Word    sh_info = b2ll(sec->header.sh_info);
+	            if (sh_entsize != sizeof(ElfW(Sym)))
 	            {
 		            ERROR("symbol size mismatch %s: %lu != %lu",
 		                filename,
-		                (unsigned long)sec->header.sh_entsize,
+		                (unsigned long)sh_entsize,
 		                (unsigned long)sizeof(ElfW(Sym)));
 		            return NULL;
 	            }
-                DEBUG("sh_link %d\n", sec->header.sh_link);
-	            nsym = sec->header.sh_size / sizeof(ElfW(Sym));
+                DEBUG("sh_link %d\n", sh_link);
+	            nsym = sh_size / sizeof(ElfW(Sym));
                 DEBUG("nsym: %ld\n", nsym);
-	            strtab = f->sections[sec->header.sh_link]->contents;
+	            strtab = f->sections[sh_link]->contents;
 	            sym = (ElfW(Sym) *) sec->contents;
 
 	            /* Allocate space for a table of local symbols.  */
-                DEBUG("sh_info %d\n", sec->header.sh_info);
-	            j = f->local_symtab_size = sec->header.sh_info;
+                DEBUG("sh_info %d\n", sh_info);
+	            j = f->local_symtab_size = sh_info;
                 DEBUG("f->local_symtab_size: %d\n", (int)f->local_symtab_size);
 	            f->local_symtab = xmalloc(j *= sizeof(struct obj_symbol *));
 	            memset(f->local_symtab, 0, j);
@@ -260,40 +276,22 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	            for (j = 1, ++sym; j < nsym; ++j, ++sym)
 	            {
 		            const char *name;
-		            if (sym->st_name)
-		                name = strtab+sym->st_name;
+                    Elf32_Word    st_name = b2ll(sym->st_name);
+                    Elf32_Section st_shndx = b2ls(sym->st_shndx);
+
+		            if (st_name)
+		                name = strtab + st_name;
 		            else
-		                name = f->sections[sym->st_shndx]->name;
-
-                    if( ELFW(ST_TYPE)(sym->st_info) <= 5 && ELFW(ST_BIND)(sym->st_info) <= 2)
-                    {
-                        DEBUG("sym name: %s,type: %s, binding: %s, st_shndx 0x%x\n", name, sym_type[ELFW(ST_TYPE)(sym->st_info)], sym_binding[ELFW(ST_BIND)(sym->st_info)], sym->st_shndx);
-                    }
-                    else
-                    {
-                        DEBUG("sym name: %s,type: %d , binding: %d, st_shndx: 0x%x\n", name, sym->st_info&0xf, sym->st_info>>4, sym->st_shndx);
-                    }
-
+		                name = f->sections[st_shndx]->name;
 
                     {
-                    #ifdef ARCH_sh64
-                     /*
-            		                * For sh64 it is possible that the target of a branch requires a
-            		                * mode switch---32 to 16 and back again---and this is implied by
-            		                * the lsb being set in the target address for SHmedia mode and clear
-            		                * for SHcompact.
-            		                */
-                        int lsb;
-                        lsb = (sym->st_other & 4) ? 1 : 0;
-
-		                obj_add_symbol(f, name, j, sym->st_info,
-				            sym->st_shndx,
-				            sym->st_value | lsb, sym->st_size);
-                    #else
-		                obj_add_symbol(f, name, j, sym->st_info,
-				            sym->st_shndx,
-				            sym->st_value, sym->st_size);
-                    #endif
+		                obj_add_symbol(f,
+                            name,
+                            j,
+                            sym->st_info,
+				            b2ls(sym->st_shndx),
+				            b2ll(sym->st_value),
+				            b2ll(sym->st_size));
                     }
 
 	            }
