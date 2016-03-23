@@ -16,6 +16,8 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     ElfW(Shdr) *section_headers;
     int shnum, i;
     char *shstrtab;
+    Elf32_Half type;
+    Elf32_Half shentsize;
 
     /* Read the file header.  */
     f = arch_new_file();
@@ -68,22 +70,26 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 
 
     DEBUG("Version: %d\n", f->header.e_ident[EI_VERSION]);
-    #ifdef PLATFORM_MIPS32
-    DEBUG("Machine: %d\n", htons(f->header.e_machine));
-    #endif
+
+    DEBUG("Machine: %d\n", b2ls(f->header.e_machine));
 
     if (f->header.e_ident[EI_CLASS] != ELFCLASSM
       || f->header.e_ident[EI_DATA] != ELFDATAM
       || f->header.e_ident[EI_VERSION] != EV_CURRENT
-      || !MATCH_MACHINE(f->header.e_machine))
+      || !MATCH_MACHINE(b2ls(f->header.e_machine)))
     {
-        ERROR("ELF file %s not for this architecture\n", filename);
+        ERROR("ELF file %s not for this architecture, %d, %d, %d, %d\n",
+            filename,
+            f->header.e_ident[EI_CLASS],
+            f->header.e_ident[EI_DATA],
+            f->header.e_ident[EI_VERSION],
+            b2ls(f->header.e_machine));
         return NULL;
     }
+    type = b2ls(f->header.e_type);
+    DEBUG("elf's type: %d\n", type);
 
-    DEBUG("elf's type: %d\n", f->header.e_type);
-
-    if (f->header.e_type != e_type && e_type != ET_NONE)
+    if (type != e_type && e_type != ET_NONE)
     {
         switch (e_type) {
             case ET_REL:
@@ -103,16 +109,18 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     DEBUG("ELF file %s is a relocatable object\n", filename);
 
     /* Read the section headers.  */
-    DEBUG("Size of section headers: %d\n", f->header.e_shentsize);
-    if (f->header.e_shentsize != sizeof(ElfW(Shdr)))
+    shentsize = b2ls(f->header.e_shentsize);
+    DEBUG("Size of section headers: %d\n", shentsize);
+
+    if (shentsize != sizeof(ElfW(Shdr)))
     {
-        ERROR("section header size mismatch %s: %lu != %lu",
+        ERROR("section header size mismatch %s: %lu != %lu\n",
             filename,
             (unsigned long)f->header.e_shentsize,
             (unsigned long)sizeof(ElfW(Shdr)));
         return NULL;
     }
-    shnum = f->header.e_shnum;
+    shnum = b2ls(f->header.e_shnum);
     DEBUG("number of section header: %d\n", shnum);
     f->sections = xmalloc(sizeof(struct obj_section *) * shnum);
     memset(f->sections, 0, sizeof(struct obj_section *) * shnum);
@@ -123,7 +131,7 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 
     if (file_read(fp, section_headers, sizeof(ElfW(Shdr))*shnum) != sizeof(ElfW(Shdr))*shnum)
     {
-        ERROR("error reading ELF section headers %s: %m", filename);
+        ERROR("error reading ELF section headers %s\n", filename);
         return NULL;
     }
 
