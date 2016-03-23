@@ -151,7 +151,6 @@ int main(int argc, char **argv)
 		goto out;
 
     INFO("obj_load ok!\n");
-    //format_patch_layout(obj_f);
 
     INFO("load_elf_symbol....!\n");
     ret = load_elf_symbol(elf_fd);
@@ -159,6 +158,7 @@ int main(int argc, char **argv)
         goto out;
 
     INFO("load_elf_symbol ok!\n");
+
     add_symbol_from_exec(obj_f);
 
     arch_create_got(obj_f);

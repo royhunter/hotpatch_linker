@@ -4,6 +4,7 @@
 #include "util.h"
 
 #include "obj.h"
+#include "elfcomm.h"
 
 
 struct mips_hi16
@@ -53,7 +54,8 @@ arch_create_got (struct obj_file *f)
 int
 arch_load_proc_section(struct obj_section *sec, int fp)
 {
-    switch (sec->header.sh_type)
+    Elf32_Word sh_type = BYTE_GET(sec->header.sh_type);
+    switch (sh_type)
     {
         case SHT_MIPS_DEBUG:
         case SHT_MIPS_REGINFO:
@@ -69,13 +71,13 @@ arch_load_proc_section(struct obj_section *sec, int fp)
         case SHT_MIPS_OPTIONS:
         case SHT_MIPS_EVENTS:
             /* These shouldn't ever be in a module file.  */
-            ERROR("Unhandled section header type: %08x", sec->header.sh_type);
+            ERROR("Unhandled section header type: %08x", sh_type);
             return -1;
 
         default:
             /* We don't even know the type.  This time it might as well be a
 	            supernova.  */
-            ERROR("Unknown section header type: %08x", sec->header.sh_type);
+            ERROR("Unknown section header type: %08x", sh_type);
             return -1;
     }
 

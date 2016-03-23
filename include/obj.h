@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <elf.h>
 
-
+#include "elfcomm.h"
 
 
 
@@ -110,17 +110,17 @@ obj_find_symbol (struct obj_file *f, const char *name);
 /* Standard method of finding relocation symbols, sets isym */
 #define obj_find_relsym(isym, f, find, rel, symtab, strtab) \
 	{ \
-		unsigned long symndx = ELFW(R_SYM)((rel)->r_info); \
+		unsigned long symndx = ELFW(R_SYM)(BYTE_GET((rel)->r_info)); \
 		ElfW(Sym) *extsym = (symtab)+symndx; \
-		if (ELFW(ST_BIND)(extsym->st_info) == STB_LOCAL) { \
+		if (ELFW(ST_BIND)(BYTE_GET(extsym->st_info)) == STB_LOCAL) { \
 			isym = (typeof(isym)) (f)->local_symtab[symndx]; \
 		} \
 		else { \
 			const char *name; \
-			if (extsym->st_name) \
-				name = (strtab) + extsym->st_name; \
+			if (BYTE_GET(extsym->st_name)) \
+				name = (strtab) + BYTE_GET(extsym->st_name); \
 			else \
-				name = (f)->sections[extsym->st_shndx]->name; \
+				name = (f)->sections[BYTE_GET(extsym->st_shndx)]->name; \
 			isym = (typeof(isym)) obj_find_symbol((find), name); \
 		} \
 	}

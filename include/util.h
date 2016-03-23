@@ -19,8 +19,6 @@ void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
 char *xstrdup(const char *);
 char *xstrcat(char *, const char *, size_t);
-uint32_t b2ll(uint32_t blong);
-uint16_t b2ls(uint16_t bshort);
 
 
 

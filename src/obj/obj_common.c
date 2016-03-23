@@ -1,7 +1,7 @@
 #include "util.h"
 #include "obj.h"
 
-
+#include "elfcomm.h"
 
 inline unsigned long
 obj_elf_hash_n(const char *name, unsigned long n)
@@ -56,8 +56,8 @@ static int
 obj_load_order_prio(struct obj_section *a)
 {
     unsigned long af, ac;
-
-    af = a->header.sh_flags;
+    Elf32_Word sh_type = BYTE_GET(a->header.sh_type);
+    af = BYTE_GET(a->header.sh_flags);
 
     ac = 0;
     if (a->name[0] != '.' || strlen(a->name) != 10 || strcmp(a->name + 5, ".init"))
@@ -66,7 +66,7 @@ obj_load_order_prio(struct obj_section *a)
     if (af & SHF_ALLOC) ac |= 32;
     if (af & SHF_EXECINSTR) ac |= 16;
     if (!(af & SHF_WRITE)) ac |= 8;
-    if (a->header.sh_type != SHT_NOBITS) ac |= 4;
+    if (sh_type != SHT_NOBITS) ac |= 4;
     /* Desired order is
 		    P S  AC & 7
 	    .data	1 0  4
@@ -95,7 +95,7 @@ void add_symbol_from_exec(struct obj_file *f)
     for( i = 0; i < source_sym_num; i++)
     {
         struct obj_symbol *sym;
-        char *name = &p_Source_ELF_strtab[p_Source_ELF_symtab[i].st_name];
+        char *name = &p_Source_ELF_strtab[BYTE_GET(p_Source_ELF_symtab[i].st_name)];
 
         sym = obj_find_symbol(f, (char *)name);
         if( sym && ELFW(ST_BIND) (sym->info) != STB_LOCAL)
