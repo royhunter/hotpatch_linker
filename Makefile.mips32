@@ -46,8 +46,6 @@ $(SRC_DIRS):
 
 $(TOP)/bin/$(ARCH)/mips32_linker: $(SRC_DIRS)
 	$(Q) $(MAKE) $(MAKE_DEBUG) -f $(TOP)/mk/prog.mk mips32_linker
-	
-x86_64: print_platform $(SRC_DIRS) $(PROGS)
 	  
 
 clean:

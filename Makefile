@@ -1,3 +1,7 @@
+all: mips32 x86_64
+    
+    
+
 mips32:
 	make -f makefile.mips32
 	
@@ -8,3 +12,5 @@ x86_64:
 clean:
 	make -f makefile.x86_64 clean
 	make -f makefile.mips32 clean
+
+.PHONY: all mips32 x86_64  clean

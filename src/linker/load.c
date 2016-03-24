@@ -36,24 +36,24 @@ static void print_load_map(struct obj_file *f)
 		int a;
 		unsigned long tmp;
 
-		for (a = -1, tmp = sec->header.sh_addralign; tmp; ++a)
+		for (a = -1, tmp = BYTE_GET(sec->header.sh_addralign); tmp; ++a)
 			tmp >>= 1;
 		if (a == -1)
 			a = 0;
 
 		INFO("%-15s %08lx  %0*lx  2**%d\n",
 			sec->name,
-			(long)sec->header.sh_size,
+			(long)BYTE_GET(sec->header.sh_size),
 			(int) (2 * sizeof(void *)),
-			(long)sec->header.sh_addr,
+			(long)BYTE_GET(sec->header.sh_addr),
 			a);
 	}
 
 	/* Quick reference which section indicies are loaded.  */
 
-	loaded = alloca(sizeof(int) * (i = f->header.e_shnum));
+	loaded = alloca(sizeof(int) * (i = BYTE_GET(f->header.e_shnum)));
 	while (--i >= 0)
-		loaded[i] = (f->sections[i]->header.sh_flags & SHF_ALLOC) != 0;
+		loaded[i] = (BYTE_GET(f->sections[i]->header.sh_flags) & SHF_ALLOC) != 0;
 
 	/* Collect the symbols we'll be listing.  */
 
@@ -90,17 +90,17 @@ static void print_load_map(struct obj_file *f)
 		} else {
 			struct obj_section *sec = f->sections[sym->secidx];
 
-			if (sec->header.sh_type == SHT_NOBITS)
+			if (BYTE_GET(sec->header.sh_type) == SHT_NOBITS)
 				type = 'B';
-			else if (sec->header.sh_flags & SHF_ALLOC) {
-				if (sec->header.sh_flags & SHF_EXECINSTR)
+			else if (BYTE_GET(sec->header.sh_flags) & SHF_ALLOC) {
+				if (BYTE_GET(sec->header.sh_flags) & SHF_EXECINSTR)
 					type = 'T';
-				else if (sec->header.sh_flags & SHF_WRITE)
+				else if (BYTE_GET(sec->header.sh_flags) & SHF_WRITE)
 					type = 'D';
 				else
 					type = 'R';
 			}
-			value = sym->value + sec->header.sh_addr;
+			value = sym->value + BYTE_GET(sec->header.sh_addr);
 		}
 
 		if (ELFW(ST_BIND) (sym->info) == STB_LOCAL)

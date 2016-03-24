@@ -166,7 +166,7 @@ arch_apply_relocation (struct obj_file *f,
             		/* Do the HI16 relocation.  Note that we actually don't
             		                need to know anything about the LO16 itself, except where
             		                to find the low 16 bits of the addend needed by the LO16.  */
-            		insn = *l->addr;
+                    insn = BYTE_GET_BY_ADDR(l->addr, sizeof(Elf32_Addr));
             		val = ((insn & 0xffff) << 16) + vallo;
             		val += v;
 
@@ -175,7 +175,7 @@ arch_apply_relocation (struct obj_file *f,
             		val = ((val >> 16) + ((val & 0x8000) != 0)) & 0xffff;
 
             		insn = (insn &~ 0xffff) | val;
-            		*l->addr = insn;
+                    BYTE_PUT_BY_ADDR(l->addr, insn, sizeof(Elf32_Addr));
 
             		next = l->next;
             		free(l);
@@ -188,7 +188,7 @@ arch_apply_relocation (struct obj_file *f,
     	    /* Ok, we're done with the HI16 relocs.  Now deal with the LO16.  */
     	    val = v + vallo;
         	insnlo = (insnlo & ~0xffff) | (val & 0xffff);
-        	*loc = insnlo;
+            BYTE_PUT_BY_ADDR(loc, insnlo, sizeof(Elf32_Addr));
         	break;
         }
 

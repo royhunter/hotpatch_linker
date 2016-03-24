@@ -298,18 +298,18 @@ obj_create_image (struct obj_file *f, char *image)
     struct obj_section *sec;
     ElfW(Addr) base = f->baseaddr;
 
-  for (sec = f->load_order; sec ; sec = sec->load_next)
+    for (sec = f->load_order; sec ; sec = sec->load_next)
     {
-      char *secimg;
+        char *secimg;
 
-      if (sec->contents == 0)
-	continue;
+        if (sec->contents == 0)
+            continue;
 
-      secimg = image + (sec->header.sh_addr - base);
+        secimg = image + (BYTE_GET(sec->header.sh_addr) - base);
 
-      /* Note that we allocated data for NOBITS sections earlier.  */
-      memcpy(secimg, sec->contents, sec->header.sh_size);
+        /* Note that we allocated data for NOBITS sections earlier.  */
+        memcpy(secimg, sec->contents, BYTE_GET(sec->header.sh_size));
     }
 
-  return 1;
+    return 1;
 }
