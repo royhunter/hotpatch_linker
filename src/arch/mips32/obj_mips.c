@@ -92,9 +92,10 @@ arch_apply_relocation (struct obj_file *f,
 		       Elf32_Rel *rel,
 		       Elf32_Addr v)
 {
+    Elf32_Addr ins;
     struct mips_file *mf = (struct mips_file *)f;
-    Elf32_Addr *loc = (Elf32_Addr *)(targsec->contents + rel->r_offset);
-    Elf32_Addr dot = targsec->header.sh_addr + rel->r_offset;
+    Elf32_Addr *loc = (Elf32_Addr *)(targsec->contents + BYTE_GET(rel->r_offset));
+    Elf32_Addr dot = BYTE_GET(targsec->header.sh_addr) + BYTE_GET(rel->r_offset);
     enum obj_reloc ret = obj_reloc_ok;
 
     /* _gp_disp is a magic symbol for PIC which is not supported for
@@ -102,27 +103,32 @@ arch_apply_relocation (struct obj_file *f,
     if (strcmp(sym->name, "_gp_disp") == 0)
         ret = obj_reloc_unhandled;
 
-    switch (ELF32_R_TYPE(rel->r_info))
+    DEBUG("ELF32_R_TYPE %d\n", (int)ELF32_R_TYPE(BYTE_GET(rel->r_info)));
+    switch (ELF32_R_TYPE(BYTE_GET(rel->r_info)))
     {
         case R_MIPS_NONE:
             break;
 
         case R_MIPS_32:
-            *loc += v;
+            ins = BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr)) + v;
+            BYTE_PUT_BY_ADDR(loc, ins, sizeof(Elf32_Addr));
             break;
 
         case R_MIPS_26:
+            DEBUG("0x%x\n", (int)BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr)));
+            DEBUG("v is 0x%x, dot is 0x%x\n", v, dot);
             if (v % 4)
     	        ret = obj_reloc_dangerous;
             if ((v & 0xf0000000) != ((dot + 4) & 0xf0000000))
             	ret = obj_reloc_overflow;
-                *loc = (*loc & ~0x03ffffff) | ((*loc + (v >> 2)) & 0x03ffffff);
-                break;
+            *loc = (*loc & ~0x03ffffff) | ((*loc + (v >> 2)) & 0x03ffffff);
+            break;
 
         case R_MIPS_HI16:
         {
 	        struct mips_hi16 *n;
-
+            DEBUG("0x%x\n", (int)BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr)));
+            DEBUG("v is 0x%x, dot is 0x%x\n", v, dot);
         	/* We cannot relocate this one now because we don't know the value
         	        of the carry we need to add.  Save the information, and let LO16
         	        do the actual relocation.  */
@@ -136,12 +142,14 @@ arch_apply_relocation (struct obj_file *f,
 
         case R_MIPS_LO16:
         {
-        	unsigned long insnlo = *loc;
+        	//unsigned long insnlo = *loc;
         	Elf32_Addr val, vallo;
-
+            unsigned long insnlo = BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr));
+            DEBUG("0x%x\n", (int)insnlo);
+            DEBUG("v is 0x%x, dot is 0x%x\n", v, dot);
         	/* Sign extend the addend we extract from the lo insn.  */
         	vallo = ((insnlo & 0xffff) ^ 0x8000) - 0x8000;
-
+            DEBUG("vallo 0x%x\n", vallo);
 	        if (mf->mips_hi16_list != NULL)
 	        {
         	    struct mips_hi16 *l;
@@ -195,11 +203,12 @@ arch_apply_relocation (struct obj_file *f,
 int
 arch_finalize_section_address(struct obj_file *f, Elf32_Addr base)
 {
-    int  i, n = f->header.e_shnum;
+    int  i, n = BYTE_GET(f->header.e_shnum);
 
     f->baseaddr = base;
     for (i = 0; i < n; ++i)
-        f->sections[i]->header.sh_addr += base;
+        BYTE_PUT(f->sections[i]->header.sh_addr, BYTE_GET(f->sections[i]->header.sh_addr)+base);
+
     return 1;
 }
 

@@ -71,19 +71,22 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         DEBUG("Data: %d \n", f->header.e_ident[EI_DATA]);
     }
 
-    switch (f->header.e_ident[EI_DATA])
-    {
-        default: /* fall through */
-        case ELFDATANONE: /* fall through */
-        case ELFDATA2LSB:
-            byte_get = byte_get_little_endian;
-            byte_put = byte_put_little_endian;
-            break;
-        case ELFDATA2MSB:
-            byte_get = byte_get_big_endian;
-            byte_put = byte_put_big_endian;
-             break;
-    }
+    if (byte_rw_method == 0 ){
+        switch (f->header.e_ident[EI_DATA])
+        {
+            default: /* fall through */
+            case ELFDATANONE: /* fall through */
+            case ELFDATA2LSB:
+                byte_get = byte_get_little_endian;
+                byte_put = byte_put_little_endian;
+                break;
+            case ELFDATA2MSB:
+                byte_get = byte_get_big_endian;
+                byte_put = byte_put_big_endian;
+                 break;
+        }
+        byte_rw_method = 1;
+     }
 
 
     DEBUG("Version: %d\n", f->header.e_ident[EI_VERSION]);
@@ -404,7 +407,7 @@ char *elf_read_section(int fd, int idx)
 }
 
 
-int load_elf_symbol(int fd)
+int load_exec_symbol(int fd)
 {
     uint32_t shsize, nid;
     int i;

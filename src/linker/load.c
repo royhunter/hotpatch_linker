@@ -153,13 +153,14 @@ int main(int argc, char **argv)
     INFO("obj_load ok!\n");
 
     INFO("load_elf_symbol....!\n");
-    ret = load_elf_symbol(elf_fd);
+    ret = load_exec_symbol(elf_fd);
     if (ret == -1)
         goto out;
 
     INFO("load_elf_symbol ok!\n");
 
-    add_symbol_from_exec(obj_f);
+    //add_symbol_from_exec(obj_f);
+    find_symbol_from_exec(obj_f);
 
     arch_create_got(obj_f);
 

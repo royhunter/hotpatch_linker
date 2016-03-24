@@ -145,7 +145,7 @@ void obj_insert_section_load_order (struct obj_file *f, struct obj_section *sec)
 struct obj_symbol *obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx,
 		int info, int secidx, ElfW(Addr) value, unsigned long size);
 
-int load_elf_symbol(int fd);
+int load_exec_symbol(int fd);
 ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym);
 int obj_relocate (struct obj_file *f, ElfW(Addr) base);
 struct obj_section *obj_find_section (struct obj_file *f, const char *name);
@@ -160,6 +160,7 @@ struct obj_section *obj_create_alloced_section (struct obj_file *f, char *name,
 
 
 void add_symbol_from_exec(struct obj_file *f);
+void find_symbol_from_exec(struct obj_file *f);
 
 
 #endif

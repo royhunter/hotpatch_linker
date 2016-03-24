@@ -22,10 +22,14 @@ extern elf_vma byte_get_signed (unsigned char *, int);
 extern elf_vma byte_get_little_endian (unsigned char *, int);
 extern elf_vma byte_get_big_endian (unsigned char *, int);
 
-#define BYTE_PUT(field, val)	byte_put (field, val, sizeof (field))
+//#define BYTE_PUT(field, val)	byte_put (field, val, sizeof (field))
+#define BYTE_PUT(field, val)	byte_put ((void *)&field, val, sizeof (field))
+
 //#define BYTE_GET(field)		byte_get (field, sizeof (field))
 //#define BYTE_GET(field, size)		byte_get (field, size)
 #define BYTE_GET(field)  byte_get((void *)&field, sizeof(field))
+#define BYTE_GET_BY_ADDR(ADDR, SIZE)  byte_get((void *)ADDR, SIZE)
+#define BYTE_PUT_BY_ADDR(ADDR,VALUE, SIZE) byte_put((void *)ADDR, VALUE, SIZE)
 #define BYTE_GET_SIGNED(field)	byte_get_signed (field, sizeof (field))
 
 #endif

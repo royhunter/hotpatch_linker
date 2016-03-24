@@ -88,7 +88,7 @@ arch_create_got (struct obj_file *f)
     struct x86_64_file *ifile = (struct x86_64_file *)f;
     int i, n, offset = 0, gotneeded = 0;
 
-    n = ifile->root.header.e_shnum;
+    n = BYTE_GET(ifile->root.header.e_shnum);
     for (i = 0; i < n; ++i)
     {
         struct obj_section *relsec, *symsec, *strsec;

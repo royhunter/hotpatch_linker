@@ -10,7 +10,7 @@
 
 int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 {
-    int i, n = f->header.e_shnum;
+    int i, n = BYTE_GET(f->header.e_shnum);
     int ret = 1;
 
     /* Finalize the addresses of the sections.  */
@@ -26,20 +26,20 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
         unsigned long nsyms;
 
         relsec = f->sections[i];
-        if (relsec->header.sh_type != SHT_RELM)
+        if (BYTE_GET(relsec->header.sh_type) != SHT_RELM)
 	        continue;
 
-        symsec = f->sections[relsec->header.sh_link];
-        targsec = f->sections[relsec->header.sh_info];// target for section of this rel section
-        strsec = f->sections[symsec->header.sh_link];
+        symsec = f->sections[BYTE_GET(relsec->header.sh_link)];
+        targsec = f->sections[BYTE_GET(relsec->header.sh_info)];// target for section of this rel section
+        strsec = f->sections[BYTE_GET(symsec->header.sh_link)];
 
-        if (!(targsec->header.sh_flags & SHF_ALLOC))
+        if (!(BYTE_GET(targsec->header.sh_flags) & SHF_ALLOC))
 	        continue;
 
         rel = (ElfW(RelM) *)relsec->contents;
-        relend = rel + (relsec->header.sh_size / sizeof(ElfW(RelM)));
+        relend = rel + (BYTE_GET(relsec->header.sh_size) / sizeof(ElfW(RelM)));
         symtab = (ElfW(Sym) *)symsec->contents;
-        nsyms = symsec->header.sh_size / symsec->header.sh_entsize;
+        nsyms = BYTE_GET(symsec->header.sh_size) / BYTE_GET(symsec->header.sh_entsize);
         strtab = (const char *)strsec->contents;
 
         for (; rel < relend; ++rel)
@@ -50,7 +50,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
             const char *errmsg;
 
             /* Attempt to find a value to use for this relocation.  */
-            symndx = ELFW(R_SYM)(rel->r_info);
+            symndx = ELFW(R_SYM)(BYTE_GET(rel->r_info));
             if (symndx)
             {
                 /* Note we've already checked for undefined symbols.  */
@@ -73,7 +73,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
                 exit(0);
             }
         #if SHT_RELM == SHT_RELA
-            value += rel->r_addend;
+            value += BYTE_GET(rel->r_addend);
         #endif
 #if 1
         /* Do it! */
@@ -84,13 +84,13 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
     	            break;
 
     	        case obj_reloc_overflow:
-    	            errmsg = "Relocation overflow";
+    	            errmsg = "Relocation overflow\n";
     	            goto bad_reloc;
     	        case obj_reloc_dangerous:
-    	            errmsg = "Dangerous relocation";
+    	            errmsg = "Dangerous relocation\n";
     	            goto bad_reloc;
     	        case obj_reloc_unhandled:
-    	            errmsg = "Unhandled relocation";
+    	            errmsg = "Unhandled relocation\n";
     	            goto bad_reloc;
     	        case obj_reloc_constant_gp:
     	            errmsg = "Modules compiled with -mconstant-gp cannot be loaded";
@@ -114,6 +114,8 @@ obj_check_undefineds(struct obj_file *f, int quiet)
 {
     unsigned long i;
     int ret = 1;
+
+    DEBUG("called %s\n", __FUNCTION__);
 
     for (i = 0; i < HASH_BUCKETS; ++i)
     {
@@ -201,30 +203,31 @@ obj_allocate_commons(struct obj_file *f)
     if (common_head)
     {
         /* Find the bss section.  */
-        for (i = 0; i < f->header.e_shnum; ++i)
-            if (f->sections[i]->header.sh_type == SHT_NOBITS)
+        for (i = 0; i < BYTE_GET(f->header.e_shnum); ++i)
+            if (BYTE_GET(f->sections[i]->header.sh_type) == SHT_NOBITS)
                 break;
 
         /* If for some reason there hadn't been one, create one.  */
-        if (i == f->header.e_shnum)
+        if (i == BYTE_GET(f->header.e_shnum))
         {
             struct obj_section *sec;
 
             f->sections = xrealloc(f->sections, (i+1) * sizeof(sec));
             f->sections[i] = sec = arch_new_section();
-            f->header.e_shnum = i+1;
+
+            BYTE_PUT(f->header.e_shnum, i+1);
 
             memset(sec, 0, sizeof(*sec));
-            sec->header.sh_type = SHT_PROGBITS;
-            sec->header.sh_flags = SHF_WRITE|SHF_ALLOC;
+            BYTE_PUT(sec->header.sh_type, SHT_PROGBITS);
+            BYTE_PUT(sec->header.sh_flags, SHF_WRITE|SHF_ALLOC);
             sec->name = ".bss";
             sec->idx = i;
         }
 
         /* Allocate the COMMONS.  */
         {
-            ElfW(Addr) bss_size = f->sections[i]->header.sh_size;
-            ElfW(Addr) max_align = f->sections[i]->header.sh_addralign;
+            ElfW(Addr) bss_size = BYTE_GET(f->sections[i]->header.sh_size);
+            ElfW(Addr) max_align = BYTE_GET(f->sections[i]->header.sh_addralign);
             struct common_entry *c;
 
             for (c = common_head; c ; c = c->next)
@@ -242,24 +245,25 @@ obj_allocate_commons(struct obj_file *f)
 	            bss_size += c->sym->size;
             }
 
-            f->sections[i]->header.sh_size = bss_size;
-            f->sections[i]->header.sh_addralign = max_align;
+            BYTE_PUT(f->sections[i]->header.sh_size, bss_size);
+            BYTE_PUT(f->sections[i]->header.sh_addralign, max_align);
         }
     }
 
     /* For the sake of patch relocation and parameter initialization,
             allocate zeroed data for NOBITS sections now.  Note that after
             this we cannot assume NOBITS are really empty.  */
-    for (i = 0; i < f->header.e_shnum; ++i)
+    for (i = 0; i < BYTE_GET(f->header.e_shnum); ++i)
     {
         struct obj_section *s = f->sections[i];
-        if (s->header.sh_type == SHT_NOBITS)
+        if (BYTE_GET(s->header.sh_type) == SHT_NOBITS)
         {
-            if (s->header.sh_size)
+            if (BYTE_GET(s->header.sh_size))
                 s->contents = memset(xmalloc(s->header.sh_size), 0, s->header.sh_size);
             else
                 s->contents = NULL;
-            s->header.sh_type = SHT_PROGBITS;
+
+            BYTE_PUT(s->header.sh_type, SHT_PROGBITS);
         }
     }
 }
@@ -276,12 +280,12 @@ obj_load_size (struct obj_file *f)
     {
         ElfW(Addr) align;
 
-        align = sec->header.sh_addralign;
+        align = BYTE_GET(sec->header.sh_addralign);
         if (align && (dot & (align - 1)))
             dot = (dot | (align - 1)) + 1;
 
-        sec->header.sh_addr = dot;
-        dot += sec->header.sh_size;
+        BYTE_PUT(sec->header.sh_addr, dot);
+        dot += BYTE_GET(sec->header.sh_size);
     }
 
     return dot;

@@ -102,12 +102,38 @@ void add_symbol_from_exec(struct obj_file *f)
         {
             sym = obj_add_symbol(f, (char *) name, -1,
 				  ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
-					     SHN_HIRESERVE + 2, p_Source_ELF_symtab[i].st_value, 0);
+					     SHN_HIRESERVE + 2,BYTE_GET(p_Source_ELF_symtab[i].st_value), 0);
 
-            DEBUG("%d  %s, 0x%x\n", i, name, (int)p_Source_ELF_symtab[i].st_value);
+            DEBUG("%d  %s, 0x%x\n", i, name, (int)BYTE_GET(p_Source_ELF_symtab[i].st_value));
         }
     }
 
+}
+
+void find_symbol_from_exec(struct obj_file *f)
+{
+    int i;
+    for( i = 0; i < source_sym_num; i++)
+    {
+        struct obj_symbol *sym;
+        char *name = &p_Source_ELF_strtab[BYTE_GET(p_Source_ELF_symtab[i].st_name)];
+
+        sym = obj_find_symbol(f, (char *)name);
+        if( sym && ELFW(ST_BIND) (sym->info) != STB_LOCAL)
+        {
+            if (ELFW(ST_TYPE) (sym->info) == STT_FUNC){
+                DEBUG("THIS IS A PATCH FUNC %s\n", sym->name);
+                continue;
+            }
+
+            DEBUG("find symbol %s\n", sym->name);
+            sym = obj_add_symbol(f, (char *) name, -1,
+				  ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+					     SHN_HIRESERVE + 2, BYTE_GET(p_Source_ELF_symtab[i].st_value), 0);
+
+            DEBUG("SYM find index: %d  name: %s, 0x%x\n", i, name, (int)BYTE_GET(p_Source_ELF_symtab[i].st_value));
+        }
+    }
 }
 
 
