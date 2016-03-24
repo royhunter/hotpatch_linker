@@ -142,14 +142,13 @@ arch_apply_relocation (struct obj_file *f,
 
         case R_MIPS_LO16:
         {
-        	//unsigned long insnlo = *loc;
         	Elf32_Addr val, vallo;
             unsigned long insnlo = BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr));
             DEBUG("0x%x\n", (int)insnlo);
             DEBUG("v is 0x%x, dot is 0x%x\n", v, dot);
         	/* Sign extend the addend we extract from the lo insn.  */
         	vallo = ((insnlo & 0xffff) ^ 0x8000) - 0x8000;
-            DEBUG("vallo 0x%x\n", vallo);
+            DEBUG("vallo %d\n", (int)vallo);
 	        if (mf->mips_hi16_list != NULL)
 	        {
         	    struct mips_hi16 *l;
@@ -169,14 +168,14 @@ arch_apply_relocation (struct obj_file *f,
                     insn = BYTE_GET_BY_ADDR(l->addr, sizeof(Elf32_Addr));
             		val = ((insn & 0xffff) << 16) + vallo;
             		val += v;
-
+                    DEBUG("val 0x%x\n", (int)val);
             		/* Account for the sign extension that will happen in the
             		                low bits.  */
             		val = ((val >> 16) + ((val & 0x8000) != 0)) & 0xffff;
 
             		insn = (insn &~ 0xffff) | val;
                     BYTE_PUT_BY_ADDR(l->addr, insn, sizeof(Elf32_Addr));
-
+                    DEBUG("INSNLO: 0x%x\n",(int)insn);
             		next = l->next;
             		free(l);
             		l = next;
@@ -188,6 +187,7 @@ arch_apply_relocation (struct obj_file *f,
     	    /* Ok, we're done with the HI16 relocs.  Now deal with the LO16.  */
     	    val = v + vallo;
         	insnlo = (insnlo & ~0xffff) | (val & 0xffff);
+            DEBUG("INSNLO: 0x%x\n",(int)insnlo);
             BYTE_PUT_BY_ADDR(loc, insnlo, sizeof(Elf32_Addr));
         	break;
         }
