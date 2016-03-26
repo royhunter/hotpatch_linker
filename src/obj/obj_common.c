@@ -121,12 +121,13 @@ void find_symbol_from_exec(struct obj_file *f)
         sym = obj_find_symbol(f, (char *)name);
         if( sym && ELFW(ST_BIND) (sym->info) != STB_LOCAL)
         {
+            DEBUG("find symbol %s\n", sym->name);
+
             if (ELFW(ST_TYPE) (sym->info) == STT_FUNC){
-                DEBUG("THIS IS A PATCH FUNC %s\n", sym->name);
+                INFO("THIS IS A PATCH FUNC %s\n", sym->name);
                 continue;
             }
 
-            DEBUG("find symbol %s\n", sym->name);
             sym = obj_add_symbol(f, (char *) name, -1,
 				  ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
 					     SHN_HIRESERVE + 2, BYTE_GET(p_Source_ELF_symtab[i].st_value), 0);
@@ -154,9 +155,6 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
 	        int o_type = ELFW(ST_TYPE)(o_info);
 	        int o_binding = ELFW(ST_BIND)(o_info);
 
-            DEBUG("name:==================%s\n", name);
-            DEBUG("o_type %d, o_binding %d\n", o_type, o_binding);
-            DEBUG("n_type %d, n_binding %d\n", n_type, n_binding);
             /* A redefinition!  Is it legal?  */
 	        if (secidx == SHN_UNDEF)
 	            return sym;
@@ -231,7 +229,6 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
         if (symidx >= f->local_symtab_size)
             ERROR("local symbol %s with index %ld exceeds local_symtab_size %ld\n", name, (long) symidx, (long) f->local_symtab_size);
         else
-            DEBUG("symidx: %d\n", (int)symidx);
             f->local_symtab[symidx] = sym;
     }
 
@@ -242,6 +239,8 @@ found:
   sym->secidx = secidx;
   sym->info = info;
   sym->r_type = 0;	/* should be R_arch_NONE for all arch */
+
+  DEBUG("%d symbol: %s, value: 0x%x, size: 0x%x\n", (int)symidx, name, (int)value, (int)size);
 
   return sym;
 }

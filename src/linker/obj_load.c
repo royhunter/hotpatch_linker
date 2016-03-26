@@ -29,14 +29,12 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     f->symbol_hash = obj_elf_hash;
     f->load_order_search_start = &f->load_order;
 
-    file_lseek(fp, 0, SEEK_SET);
-
-    if (file_read(fp, &f->header, sizeof(f->header)) != sizeof(f->header))
+    DEBUG("read ELF header from %s\n", filename);
+    if (file_seek_read(fp, 0, SEEK_SET, &f->header, sizeof(f->header)) != sizeof(f->header))
     {
         ERROR("cannot read ELF header from %s\n", filename);
         return NULL;
     }
-    DEBUG("read ELF header from %s\n", filename);
 
     DEBUG("read ELF header from %0x %0x %0x %0x\n",
         f->header.e_ident[EI_MAG0],
@@ -51,24 +49,6 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     {
         ERROR("%s is not an ELF file\n", filename);
         return NULL;
-    }
-
-    if (f->header.e_ident[EI_CLASS] == ELFCLASS64)
-    {
-        DEBUG("Class: ELF64\n");
-    }
-    else
-    {
-        DEBUG("Class: %d \n", f->header.e_ident[EI_CLASS]);
-    }
-
-    if (f->header.e_ident[EI_DATA] == ELFDATA2LSB)
-    {
-        DEBUG("Data: 2 LSB\n");
-    }
-    else
-    {
-        DEBUG("Data: %d \n", f->header.e_ident[EI_DATA]);
     }
 
     if (byte_rw_method == 0 ){
@@ -87,12 +67,6 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         }
         byte_rw_method = 1;
      }
-
-
-    DEBUG("Version: %d\n", f->header.e_ident[EI_VERSION]);
-
-
-    DEBUG("Machine: %d\n", (int)BYTE_GET(f->header.e_machine));
 
     if (f->header.e_ident[EI_CLASS] != ELFCLASSM
       || f->header.e_ident[EI_DATA] != ELFDATAM
@@ -184,7 +158,6 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
         	case SHT_RELM:
                 sh_size = BYTE_GET(sec->header.sh_size);
                 sh_offset = BYTE_GET(sec->header.sh_offset);
-                DEBUG("section size: 0x%x, offset: 0x%x\n", sh_size, sh_offset);
                 if (sh_size > 0)
         	    {
                     sec->contents = xmalloc(sec->header.sh_size);
@@ -229,28 +202,27 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
     /* Do what sort of interpretation as needed by each section.  */
     Elf32_Half shstrndx = BYTE_GET(f->header.e_shstrndx);
     shstrtab = f->sections[shstrndx]->contents;
-
+    DEBUG("=================================================================\n");
     for (i = 0; i < shnum; ++i)
     {
         struct obj_section *sec = f->sections[i];
         Elf32_Word sh_name = BYTE_GET(sec->header.sh_name);
         Elf32_Word sh_type = BYTE_GET(sec->header.sh_type);
         sec->name = shstrtab + sh_name;
-        DEBUG("%d name: %s type: 0x%x\n", i, sec->name, sh_type);
+        DEBUG("%d name: %s type: 0x%x, size: 0x%x, offset: 0x%x\n",
+            i,
+            sec->name,
+            sh_type,
+            (int)BYTE_GET(sec->header.sh_size),
+            (int)BYTE_GET(sec->header.sh_offset));
     }
-
+    DEBUG("=================================================================\n");
     for (i = 0; i < shnum; ++i)
     {
         Elf32_Word    sh_flags;
         struct obj_section *sec = f->sections[i];
         Elf32_Word sh_type = BYTE_GET(sec->header.sh_type);
 
-        if (strcmp(sec->name, ".modinfo") == 0 || strcmp(sec->name, ".modstring") == 0)
-        {
-            sh_flags = BYTE_GET(sec->header.sh_flags);
-            sh_flags &= ~SHF_ALLOC;
-            sec->header.sh_flags = BYTE_GET(sh_flags);
-        }
         sh_flags = BYTE_GET(sec->header.sh_flags);
 
         if (sh_flags & SHF_ALLOC)
@@ -277,20 +249,23 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 		                (unsigned long)sizeof(ElfW(Sym)));
 		            return NULL;
 	            }
-                DEBUG("sh_link %d\n", sh_link);
+
 	            nsym = sh_size / sizeof(ElfW(Sym));
-                DEBUG("nsym: %ld\n", nsym);
+                DEBUG("number of symbol: %ld\n", nsym);
 	            strtab = f->sections[sh_link]->contents;
+                DEBUG("symbol's sh_link %d is .strtab\n", sh_link);
 	            sym = (ElfW(Sym) *) sec->contents;
 
 	            /* Allocate space for a table of local symbols.  */
-                DEBUG("sh_info %d\n", sh_info);
 	            j = f->local_symtab_size = sh_info;
-                DEBUG("f->local_symtab_size: %d\n", (int)f->local_symtab_size);
+                DEBUG("symbol table's sh_info %d is number of local type symbol\n", sh_info);
+
 	            f->local_symtab = xmalloc(j *= sizeof(struct obj_symbol *));
 	            memset(f->local_symtab, 0, j);
 
 	            /* Insert all symbols into the hash table.  */
+                DEBUG("=================================================================\n");
+                DEBUG("Insert all symbols into the hash table...\n");
 	            for (j = 1, ++sym; j < nsym; ++j, ++sym)
 	            {
 		            const char *name;
@@ -313,12 +288,15 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
                     }
 
 	            }
+                DEBUG("=================================================================\n");
 	        }
             break;
         }
     }
 
     /* second pass to add relocation data to symbols */
+    DEBUG("=================================================================\n");
+    DEBUG("add relocation data to symbols\n");
     for (i = 0; i < shnum; ++i)
     {
         struct obj_section *sec = f->sections[i];
@@ -326,7 +304,6 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	    {
 	        case SHT_RELM:
 	        {
-                DEBUG("SHT_RELM:----------------------\n");
 	            unsigned long nrel, j, nsyms;
 	            ElfW(RelM) *rel;
 	            struct obj_section *symtab;
@@ -341,9 +318,8 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	            }
 
 	            nrel = BYTE_GET(sec->header.sh_size) / sizeof(ElfW(RelM));
-                DEBUG("nrel: %d\n", (int)nrel);
+                DEBUG("rel name: %s, number of rel entry: %d\n", sec->name, (int)nrel);
 	            rel = (ElfW(RelM) *) sec->contents;
-                DEBUG("sh_link: %d\n", (int)BYTE_GET(sec->header.sh_link));
 	            symtab = f->sections[BYTE_GET(sec->header.sh_link)];
 	            nsyms = BYTE_GET(symtab->header.sh_size) / BYTE_GET(symtab->header.sh_entsize);
 	            strtab = f->sections[BYTE_GET(symtab->header.sh_link)]->contents;
@@ -372,8 +348,8 @@ obj_load (int fp, Elf32_Half e_type, const char *filename)
 	    }
     }
 
+    DEBUG("=================================================================\n");
     f->filename = xstrdup(filename);
-    INFO("filename: %s\n", f->filename);
     return f;
 }
 
@@ -412,9 +388,7 @@ int load_exec_symbol(int fd)
     uint32_t shsize, nid;
     int i;
     /* Read ELF header */
-    file_lseek(fd, 0, SEEK_SET);
-
-    if (file_read(fd, &Source_ELF_Header, sizeof(Source_ELF_Header)) != sizeof(Source_ELF_Header))
+    if (file_seek_read(fd, 0, SEEK_SET, &Source_ELF_Header, sizeof(Source_ELF_Header)) != sizeof(Source_ELF_Header))
     {
         ERROR("cannot read ELF header\n");
         return -1;
@@ -441,6 +415,7 @@ int load_exec_symbol(int fd)
     }
 
     /* Read section header table */
+    DEBUG("Read section header table\n");
     shsize = BYTE_GET(p_Source_ELF_Header->e_shnum) * BYTE_GET(p_Source_ELF_Header->e_shentsize);
     if (!(p_Source_ELF_shtab  = (ElfW(Shdr) *)xmalloc(shsize))) {
         ERROR("not enough memory\n");
@@ -454,14 +429,12 @@ int load_exec_symbol(int fd)
         shsize);
 
     /* Read section header string table */
-    DEBUG("STRING TAB INDEX %d\n", (int)BYTE_GET(p_Source_ELF_Header->e_shstrndx));
-
+    DEBUG("Read section header string table\n");
     if (!(p_Source_ELF_shstrtab = elf_read_section(fd, BYTE_GET(p_Source_ELF_Header->e_shstrndx))))
     {
         ERROR("get string table failed\n");
         return -1;
     }
-
 
     /* Read string table */
     p_Source_ELF_strtab = NULL;
@@ -473,25 +446,21 @@ int load_exec_symbol(int fd)
         }
     }
 
-
     /* Read symbol table */
     p_Source_ELF_symtab = NULL;
     for (i = 0; i < BYTE_GET(p_Source_ELF_Header->e_shnum); i ++) {
         if (BYTE_GET(p_Source_ELF_shtab[i].sh_type) == SHT_SYMTAB) {
-            DEBUG("sym link %d\n", (int)BYTE_GET(p_Source_ELF_shtab[i].sh_link));
             p_Source_ELF_symtab = (ElfW(Sym) *)elf_read_section(fd, i);
             break;
         }
     }
 
-
     if( p_Source_ELF_symtab ){
         source_sym_num = BYTE_GET(p_Source_ELF_shtab[i].sh_size) / BYTE_GET(p_Source_ELF_shtab[i].sh_entsize);
-        INFO("Total %d symbols loaded\n", source_sym_num);
+        INFO("Total %d symbols from executable loaded\n", source_sym_num);
     }
 
     return 0;
-
 }
 
 
