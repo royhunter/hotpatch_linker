@@ -2,10 +2,11 @@
 hotpatch_linker is a project which provide a tool for link and pack a patch package.
 
 
-Usage:
-        Arch_linker [options] -o obj_filename  -e executable_filename 
+## Usage:
+		Arch_linker [options] -o obj_filename  -e executable_filename
         Arch: x86_64,mips32
-Options:
+
+## Options:
         -d  --debug             Output debug info
         -v, --version           Show version
         -h, --help              Show this help
