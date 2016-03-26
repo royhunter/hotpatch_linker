@@ -10,16 +10,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdarg.h>
 
-#define ERROR printf
-#define DEBUG printf
-#define INFO printf
-
+void debug_print(const char *fmt,...);
 void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
 char *xstrdup(const char *);
 char *xstrcat(char *, const char *, size_t);
 
+#define ERROR printf
+#define DEBUG debug_print
+#define INFO printf
 
 
 #endif

@@ -126,7 +126,7 @@ void find_symbol_from_exec(struct obj_file *f)
 
             if (ELFW(ST_TYPE)(sym->info) == STT_FUNC){
                 /*TODO: patch info*/
-                INFO("THIS IS A PATCH FUNC %s\n", sym->name);
+                INFO("PATCH FUNC: %s\n", sym->name);
                 continue;
             }
 
@@ -300,14 +300,10 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
 {
     if (sym)
     {
-        //DEBUG("SECIDX: %d\n", sym->secidx);
         if (sym->secidx >= SHN_LORESERVE)
 	        return sym->value;
 
-        //DEBUG("sym->value: %d,  sym->secidx: %d, f->sections[sym->secidx]->header.sh_addr: %d\n",
-            //(int)sym->value, (int)sym->secidx,  (int)f->sections[sym->secidx]->header.sh_addr);
-
-        return sym->value + f->sections[sym->secidx]->header.sh_addr;
+        return sym->value + BYTE_GET(f->sections[sym->secidx]->header.sh_addr);
     }
     else
     {
@@ -319,7 +315,7 @@ ElfW(Addr) obj_symbol_final_value (struct obj_file *f, struct obj_symbol *sym)
 struct obj_section *
 obj_find_section (struct obj_file *f, const char *name)
 {
-  int i, n = f->header.e_shnum;
+  int i, n = BYTE_GET(f->header.e_shnum);
 
   for (i = 0; i < n; ++i)
     if (strcmp(f->sections[i]->name, name) == 0)

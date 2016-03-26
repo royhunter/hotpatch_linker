@@ -1,16 +1,25 @@
 #include <stdio.h>
 
-
+#include <getopt.h>
 #include "util.h"
 #include "file.h"
 #include "obj.h"
-
+#include "version.h"
 
 
 void usage()
 {
-    INFO("usage:...\n");
-    INFO("linker elf_file obj_file\n");
+    fputs("Usage:\n"
+          "        Arch_linker [options] -o obj_filename  -e executable_filename \n"
+          "        Arch: x86_64,mips32\n"
+          "Options:\n"
+	      "        -d  --debug             Output debug info\n"
+	      "        -v, --version           Show version\n"
+	      "        -h, --help              Show this help\n"
+	      "        -o obj,  --obj=NAME     Set obj file name\n"
+	      "        -e exec, --exec=NAME    Set exec file name\n"
+          ,stderr);
+    exit(1);
 }
 
 static void print_load_map(struct obj_file *f)
@@ -26,6 +35,7 @@ static void print_load_map(struct obj_file *f)
 		 return aa < ba ? -1 : aa > ba ? 1 : 0;
 	}
 	int i, nsyms, *loaded;
+    INFO("Image info:\n");
     INFO("========================================\n");
 	/* Report on the section layout.  */
 
@@ -111,32 +121,66 @@ static void print_load_map(struct obj_file *f)
 	}
 }
 
+extern int debug;
+
 int main(int argc, char **argv)
 {
     int ret;
+    int ch;
 	int elf_fd;
     int obj_fd;
     unsigned long image_size;
     struct obj_file *obj_f;
     void *image;
+    char *obj_filename = NULL, *exec_filename = NULL;
 
-    if ( argc < 3 )
-    {
-        ERROR("argument err!\n");
-        usage();
-        return 1;
+    struct option long_opts[] = {
+		{"help", 0, 0, 'h'},
+		{"version", 0, 0, 'v'},
+        {"debug", 0, 0, 'd'},
+        {"obj", 0, 0, 'o'},
+        {"exec", 0, 0, 'e'},
+		{0, 0, 0, 0}
+	};
+
+    while((ch = getopt_long(argc, argv, "dhvo:e:", &long_opts[0], NULL)) != EOF) {
+        switch(ch){
+            case 'd':
+                debug = 1;
+                break;
+            case 'o':
+                obj_filename = optarg;
+                break;
+            case 'e':
+                exec_filename = optarg;
+                break;
+            case 'h':
+                usage();
+                break;
+            case 'v':
+                fputs("Linker version " LINKER_VERSION "\n", stderr);
+                exit(0);
+                break;
+            default:
+                printf("Unknown param!\n");
+                usage();
+                exit(0);
+        }
+
     }
 
-    char *elf_filename = argv[1];
-    char *obj_filename = argv[2];
+    if( NULL == obj_filename || NULL == exec_filename) {
+        usage();
+        exit(0);
+    }
 
-	elf_fd = file_open(elf_filename, O_RDONLY);
+	elf_fd = file_open(exec_filename, O_RDONLY);
 	if (elf_fd == -1)
 	{
-		ERROR("%s open fail!\n", elf_filename);
+		ERROR("%s open fail!\n", exec_filename);
 		return 1;
 	}
-    DEBUG("%s open ok!\n", elf_filename);
+    DEBUG("%s open ok!\n", exec_filename);
 
     obj_fd = file_open(obj_filename, O_RDONLY);
 	if (obj_fd == -1)
@@ -147,18 +191,23 @@ int main(int argc, char **argv)
 	}
     DEBUG("%s open ok!\n", obj_filename);
 
-	if ((obj_f = obj_load(obj_fd, ET_REL, obj_filename)) == NULL)
-		goto out;
-
-    INFO("obj_load ok!\n");
-    DEBUG("=================================================================\n");
-    INFO("load_exec_symbol....!\n");
-    ret = load_exec_symbol(elf_fd);
-    if (ret == -1)
+    INFO("Obj file load....\n");
+	if ((obj_f = obj_load(obj_fd, ET_REL, obj_filename)) == NULL){
+        ERROR("Obj file load failed!\n");
         goto out;
+    }
 
-    INFO("load_exec_symbol ok!\n");
+    INFO("Obj file load ok!\n");
+    DEBUG("=================================================================\n");
 
+    INFO("Exec symbol load....\n");
+    ret = load_exec_symbol(elf_fd);
+    if (ret == -1) {
+        ERROR("Exec symbol load failed!\n");
+        goto out;
+    }
+
+    INFO("Load exec symbol ok!\n");
 
     find_symbol_from_exec(obj_f);
 
@@ -169,10 +218,11 @@ int main(int argc, char **argv)
     obj_allocate_commons(obj_f);
 
     image_size = obj_load_size(obj_f);
-    INFO("image size 0x%x\n", (int)image_size);
+    INFO("Image size: 0x%x\n", (int)image_size);
 
-    obj_relocate(obj_f, 0);
-
+    INFO("Relocate start...\n");
+    obj_relocate(obj_f, 0x50000000);
+    INFO("Relocate success!!!\n");
     /*
 	 * Whew!  All of the initialization is complete.
 	 * Collect the final  image.

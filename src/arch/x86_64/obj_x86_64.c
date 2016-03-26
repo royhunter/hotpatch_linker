@@ -72,7 +72,6 @@ arch_finalize_section_address(struct obj_file *f, Elf64_Addr base)
 
     f->baseaddr = base;
     for (i = 0; i < n; ++i) {
-        DEBUG("section: %d,  addr is 0x%x\n", i, (int)f->sections[i]->header.sh_addr);
         f->sections[i]->header.sh_addr += base;
     }
 

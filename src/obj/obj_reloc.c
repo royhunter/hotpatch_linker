@@ -12,7 +12,8 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 {
     int i, n = BYTE_GET(f->header.e_shnum);
     int ret = 1;
-
+    DEBUG("==========================================\n");
+    DEBUG("obj_relocate start\n");
     /* Finalize the addresses of the sections.  */
     arch_finalize_section_address(f, base);
 
@@ -48,7 +49,7 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
             struct obj_symbol *intsym = NULL;
             unsigned long symndx;
             const char *errmsg;
-
+            DEBUG("==========================================\n");
             /* Attempt to find a value to use for this relocation.  */
             symndx = ELFW(R_SYM)(BYTE_GET(rel->r_info));
             if (symndx)
@@ -60,23 +61,25 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
 			            f->filename, symndx, nsyms);
 		            continue;
                 }
+
                 obj_find_relsym(intsym, f, f, rel, symtab, strtab);
-                DEBUG("WANT TO FIND SYM: %s\n", intsym->name);
+                DEBUG("find relocate symbol: %s\n", intsym->name);
+
                 value = obj_symbol_final_value(f, intsym);
-                DEBUG("SYM VALUE: 0x%x\n", (int)value);
+
             }
             int n_binding = ELFW(ST_BIND)(intsym->info);
             if( value == 0 && n_binding == STB_GLOBAL)
             {
-                DEBUG("no value sym: %s\n", intsym->name);
-                ERROR("error: can not relocate sym: %s\n", intsym->name);
+                DEBUG("no value symbol: %s\n", intsym->name);
+                ERROR("error: can not relocate symbol: %s\n", intsym->name);
                 exit(0);
             }
         #if SHT_RELM == SHT_RELA
             value += BYTE_GET(rel->r_addend);
         #endif
-#if 1
-        /* Do it! */
+            DEBUG("relocated address: 0x%x\n", (int)value);
+            /* Do it! */
             switch (arch_apply_relocation(f,targsec,symsec,intsym,rel,value))
     	    {
     	        case obj_reloc_ok:
@@ -93,15 +96,15 @@ int obj_relocate (struct obj_file *f, ElfW(Addr) base)
     	            errmsg = "Unhandled relocation\n";
     	            goto bad_reloc;
     	        case obj_reloc_constant_gp:
-    	            errmsg = "Modules compiled with -mconstant-gp cannot be loaded";
+    	            errmsg = "Modules compiled with -mconstant-gp cannot be loaded\n";
     	            goto bad_reloc;
     bad_reloc:
-    	        ERROR("%s: %s of type %ld for %s", f->filename, errmsg,
+    	        ERROR("%s: %s of type %ld for %s\n", f->filename, errmsg,
     		        (long)ELFW(R_TYPE)(rel->r_info), intsym->name);
     	        ret = 0;
     	        break;
     	    }
-       #endif
+
         }
     }
     return ret;
@@ -114,8 +117,6 @@ obj_check_undefineds(struct obj_file *f, int quiet)
 {
     unsigned long i;
     int ret = 1;
-
-    DEBUG("called %s\n", __FUNCTION__);
 
     for (i = 0; i < HASH_BUCKETS; ++i)
     {
