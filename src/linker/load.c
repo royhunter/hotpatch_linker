@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         goto out;
 
     INFO("load_exec_symbol ok!\n");
-    DEBUG("=================================================================\n");
+
 
     find_symbol_from_exec(obj_f);
 

@@ -113,6 +113,7 @@ void add_symbol_from_exec(struct obj_file *f)
 void find_symbol_from_exec(struct obj_file *f)
 {
     int i;
+    DEBUG("=================================================================\n");
     for( i = 0; i < source_sym_num; i++)
     {
         struct obj_symbol *sym;
@@ -123,18 +124,29 @@ void find_symbol_from_exec(struct obj_file *f)
         {
             DEBUG("find symbol %s\n", sym->name);
 
-            if (ELFW(ST_TYPE) (sym->info) == STT_FUNC){
+            if (ELFW(ST_TYPE)(sym->info) == STT_FUNC){
+                /*TODO: patch info*/
                 INFO("THIS IS A PATCH FUNC %s\n", sym->name);
                 continue;
             }
 
-            sym = obj_add_symbol(f, (char *) name, -1,
-				  ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
-					     SHN_HIRESERVE + 2, BYTE_GET(p_Source_ELF_symtab[i].st_value), 0);
+            if (ELFW(ST_TYPE)(sym->info) == STT_OBJECT ) {
+                INFO("%s redefined\n", sym->name);
+                exit(0);
+            }
 
-            DEBUG("SYM find index: %d  name: %s, 0x%x\n", i, name, (int)BYTE_GET(p_Source_ELF_symtab[i].st_value));
+            sym = obj_add_symbol(f,
+                        (char *) name,
+                        -1,
+				        ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+					    SHN_HIRESERVE + 2,
+					    BYTE_GET(p_Source_ELF_symtab[i].st_value),
+					    0);
+
+            DEBUG("SYM find index: %d  name: %s, address: 0x%x\n", i, name, (int)BYTE_GET(p_Source_ELF_symtab[i].st_value));
         }
     }
+    DEBUG("=================================================================\n");
 }
 
 
@@ -239,8 +251,6 @@ found:
   sym->secidx = secidx;
   sym->info = info;
   sym->r_type = 0;	/* should be R_arch_NONE for all arch */
-
-  DEBUG("%d symbol: %s, value: 0x%x, size: 0x%x\n", (int)symidx, name, (int)value, (int)size);
 
   return sym;
 }
