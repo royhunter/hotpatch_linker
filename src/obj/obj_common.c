@@ -157,7 +157,6 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
     unsigned long hash = f->symbol_hash(name) % HASH_BUCKETS;
     int n_type = ELFW(ST_TYPE)(info);
     int n_binding = ELFW(ST_BIND)(info);
-
     for (sym = f->symtab[hash]; sym; sym = sym->next)
     {
         if (f->symbol_cmp(sym->name, name) == 0)
@@ -245,14 +244,14 @@ obj_add_symbol (struct obj_file *f, const char *name, unsigned long symidx, int 
     }
 
 found:
-  sym->name = name;
-  sym->value = value;
-  sym->size = size;
-  sym->secidx = secidx;
-  sym->info = info;
-  sym->r_type = 0;	/* should be R_arch_NONE for all arch */
+    sym->name = name;
+    sym->value = value;
+    sym->size = size;
+    sym->secidx = secidx;
+    sym->info = info;
+    sym->r_type = 0;	/* should be R_arch_NONE for all arch */
 
-  return sym;
+    return sym;
 }
 
 

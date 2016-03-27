@@ -153,7 +153,7 @@ obj_allocate_commons(struct obj_file *f)
     } *common_head = NULL;
 
     unsigned long i;
-
+    DEBUG("Allocate common blockers\n");
     for (i = 0; i < HASH_BUCKETS; ++i)
     {
         struct obj_symbol *sym;
@@ -204,9 +204,10 @@ obj_allocate_commons(struct obj_file *f)
     if (common_head)
     {
         /* Find the bss section.  */
-        for (i = 0; i < BYTE_GET(f->header.e_shnum); ++i)
+        for (i = 0; i < BYTE_GET(f->header.e_shnum); ++i) {
             if (BYTE_GET(f->sections[i]->header.sh_type) == SHT_NOBITS)
                 break;
+        }
 
         /* If for some reason there hadn't been one, create one.  */
         if (i == BYTE_GET(f->header.e_shnum))
