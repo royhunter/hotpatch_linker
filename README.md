@@ -31,7 +31,7 @@ Compile all:
 		Arch_linker [options] -o obj_filename  -e executable_filename
         Arch: x86_64,mips32
 
-   Options:
+    Options:
         -d  --debug             Output debug info
         -v, --version           Show version
         -h, --help              Show this help
