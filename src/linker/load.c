@@ -5,7 +5,7 @@
 #include "file.h"
 #include "obj.h"
 #include "version.h"
-
+#include "patch.h"
 
 void usage()
 {
@@ -173,6 +173,8 @@ int main(int argc, char **argv)
         usage();
         exit(0);
     }
+
+    patch_init();
 
 	elf_fd = file_open(exec_filename, O_RDONLY);
 	if (elf_fd == -1)

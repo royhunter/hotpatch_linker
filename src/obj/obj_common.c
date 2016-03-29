@@ -127,6 +127,7 @@ void find_symbol_from_exec(struct obj_file *f)
             if (ELFW(ST_TYPE)(sym->info) == STT_FUNC){
                 /*TODO: patch info*/
                 INFO("PATCH FUNC: %s\n", sym->name);
+                patch_add_func(name, p_Source_ELF_symtab[i].st_value);
                 continue;
             }
 
