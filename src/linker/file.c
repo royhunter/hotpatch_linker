@@ -31,3 +31,8 @@ int file_seek_read(int fd, off_t offset, int whence, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+int file_write(int fd, void *buf, size_t count)
+{
+    return write(fd, buf, count);
+}
+

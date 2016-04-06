@@ -19,6 +19,7 @@ typedef struct {
     uint32_t magic;
     uint32_t fp_index;
     PatchFunc pf[PATCH_FUNC_MAX];
+    uint32_t image_size;
     char *image;
 }Patch;
 

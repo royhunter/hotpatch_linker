@@ -16,7 +16,6 @@ uint32_t b2ll(uint32_t blong)
     b3 = (blong & 0xff000000) >> 24;
 
     return b0 | b1 | b2 | b3;
-
 }
 
 uint16_t b2ls(uint16_t bshort)
@@ -65,6 +64,7 @@ uint16_t b2ls(uint16_t bshort)
 {
     return bshort;
 }
+
 #endif
 
 

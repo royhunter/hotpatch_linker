@@ -7,6 +7,9 @@
 #include "version.h"
 #include "patch.h"
 
+char *patch_file = "./patch";
+
+
 void usage()
 {
     fputs("Usage:\n"
@@ -122,13 +125,14 @@ static void print_load_map(struct obj_file *f)
 }
 
 extern int debug;
-
+extern Patch *ppatch;
 int main(int argc, char **argv)
 {
     int ret;
     int ch;
 	int elf_fd;
     int obj_fd;
+    int patch_fd;
     unsigned long image_size;
     struct obj_file *obj_f;
     void *image;
@@ -231,8 +235,12 @@ int main(int argc, char **argv)
 	 */
     image = xmalloc(image_size);
 	obj_create_image(obj_f, image);
+    ppatch->image = image;
+    ppatch->image_size = image_size;
 
     print_load_map(obj_f);
+
+    patch_output(ppatch, patch_file);
 
 out:
     file_close(elf_fd);

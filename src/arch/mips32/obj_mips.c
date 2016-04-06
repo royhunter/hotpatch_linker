@@ -119,7 +119,7 @@ arch_apply_relocation (struct obj_file *f,
     	        ret = obj_reloc_dangerous;
             if ((v & 0xf0000000) != ((dot + 4) & 0xf0000000))
             	ret = obj_reloc_overflow;
-            *loc = (*loc & ~0x03ffffff) | ((*loc + (v >> 2)) & 0x03ffffff);
+            BYTE_PUT_BY_ADDR(loc, (BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr)) & ~0x03ffffff) | ((BYTE_GET_BY_ADDR(loc, sizeof(Elf32_Addr)) + (v >> 2)) & 0x03ffffff), sizeof(Elf32_Addr));
             break;
 
         case R_MIPS_HI16:
